@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { client } from "@/sanity/lib/client";
 import { SEARCH_ALL_QUERY } from "@/sanity/lib/queries";
@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import SearchForm from "@/components/SearchForm";
 import Link from "next/link";
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("query");
   const [searchResults, setSearchResults] = useState<{
@@ -76,7 +76,7 @@ export default function SearchPage() {
               </h2>
               <p className="text-gray-600 mb-4">
                 Found {totalResults} result{totalResults !== 1 ? 's' : ''} 
-                ({searchResults?.aiTools.length || 0} AI tools, {searchResults?.blogs.length || 0} blogs)
+                ({searchResults?.aiTools?.length || 0} AI tools, {searchResults?.blogs?.length || 0} blogs)
               </p>
 
               {/* Tab Navigation */}
@@ -99,7 +99,7 @@ export default function SearchPage() {
                       : 'bg-white text-black border-black hover:bg-gray-50'
                   }`}
                 >
-                  AI Tools ({searchResults?.aiTools.length || 0})
+                  AI Tools ({searchResults?.aiTools?.length || 0})
                 </button>
                 <button
                   onClick={() => setActiveTab("blogs")}
@@ -109,7 +109,7 @@ export default function SearchPage() {
                       : 'bg-white text-black border-black hover:bg-gray-50'
                   }`}
                 >
-                  Blogs ({searchResults?.blogs.length || 0})
+                  Blogs ({searchResults?.blogs?.length || 0})
                 </button>
               </div>
             </div>
@@ -131,10 +131,10 @@ export default function SearchPage() {
             ) : (
               <>
                 {/* AI Tools Results */}
-                {(activeTab === "all" || activeTab === "aiTools") && searchResults?.aiTools.length > 0 && (
+                {(activeTab === "all" || activeTab === "aiTools") && searchResults?.aiTools?.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                      AI Tools ({searchResults.aiTools.length})
+                      AI Tools ({searchResults.aiTools?.length})
                     </h3>
                     <ul className="card_grid-sm">
                       {searchResults.aiTools.map((tool) => (
@@ -152,10 +152,10 @@ export default function SearchPage() {
                 )}
 
                 {/* Blogs Results */}
-                {(activeTab === "all" || activeTab === "blogs") && searchResults?.blogs.length > 0 && (
+                {(activeTab === "all" || activeTab === "blogs") && searchResults?.blogs?.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                      Blog Posts ({searchResults.blogs.length})
+                      Blog Posts ({searchResults.blogs?.length})
                     </h3>
                     <ul className="card_grid-sm">
                       {searchResults.blogs.map((blog) => (
@@ -184,5 +184,17 @@ export default function SearchPage() {
         )}
       </section>
     </>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 } 

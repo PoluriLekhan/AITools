@@ -371,3 +371,33 @@ export const cleanupExpiredNotifications = async () => {
     return { success: false, error: JSON.stringify(error) };
   }
 };
+
+export async function createBlogPost(formData: FormData) {
+  try {
+    const title = formData.get("title") as string;
+    const content = formData.get("content") as string;
+    const category = formData.get("category") as string;
+    const accessType = formData.get("accessType") as string;
+    const aiToolLink = formData.get("aiToolLink") as string;
+
+    if (!title || !content || !category) {
+      throw new Error("Missing required fields");
+    }
+
+    const doc = {
+      _type: "blog",
+      title,
+      content,
+      category,
+      accessType: accessType || "public",
+      aiToolLink: aiToolLink || null,
+      publishedAt: new Date().toISOString(),
+    };
+
+    const result = await writeClient.create(doc);
+    return { success: true, id: result._id };
+  } catch (error) {
+    console.error("Error creating blog post:", error);
+    return { success: false, error: "Failed to create blog post" };
+  }
+}
