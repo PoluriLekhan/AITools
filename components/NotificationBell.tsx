@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bell, X, Check, Clock } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { client } from "@/sanity/lib/client";
-import { UNSEEN_NOTIFICATIONS_COUNT_QUERY, NOTIFICATIONS_BY_USER_QUERY } from "@/sanity/lib/queries";
+
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,10 +45,16 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
     if (!user?.email) return;
     
     try {
-      const count = await client.fetch(UNSEEN_NOTIFICATIONS_COUNT_QUERY, { 
-        userEmail: user.email 
+      const response = await fetch("/api/notifications/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: user.email, type: "count" }),
       });
-      setUnseenCount(count);
+      
+      if (response.ok) {
+        const count = await response.json();
+        setUnseenCount(count);
+      }
     } catch (error) {
       console.error("Error fetching unseen notifications count:", error);
     }
@@ -60,8 +65,16 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
     if (!user?.email) return;
     
     try {
-      const data = await client.fetch(NOTIFICATIONS_BY_USER_QUERY);
-      setNotifications(data);
+      const response = await fetch("/api/notifications/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: user.email, type: "all" }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      }
     } catch (error) {
       console.error("Error fetching notifications:", error);
     }

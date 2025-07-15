@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createAiTool } from "@/lib/actions";
 import { useAuth } from "@/components/AuthProvider";
+import { fetchAIToolTitlesAndURLs } from "@/lib/sanity-client";
 
 const AiToolForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,6 +120,25 @@ const AiToolForm = () => {
 
   const handleFormSubmit = async (formData: FormData) => {
     try {
+      // Duplicate check (frontend)
+      const allToolsResult = await fetchAIToolTitlesAndURLs();
+      if (allToolsResult.success) {
+        const allTools = allToolsResult.data;
+        const newTitle = (formData.get("title") as string)?.trim().toLowerCase();
+        const newURL = (formData.get("website") as string)?.trim().toLowerCase();
+        const duplicate = allTools.find((tool: any) =>
+          (tool.title && tool.title.trim().toLowerCase() === newTitle) ||
+          (tool.toolWebsiteURL && tool.toolWebsiteURL.trim().toLowerCase() === newURL)
+        );
+        if (duplicate) {
+          toast({
+            title: "Error",
+            description: `This AI tool already exists with the same name or URL.\nTool already exists: ${duplicate.title} – ${duplicate.toolWebsiteURL}`,
+            variant: "destructive",
+          });
+          return { error: "DUPLICATE", status: "ERROR" };
+        }
+      }
       console.log("Form submission started");
       
       // Get the final types array (all selected types are already the actual values)

@@ -60,6 +60,21 @@ export const createAiTool = async (
       authorId = newUser._id;
     }
 
+    // Backend duplicate check
+    const allTools = await client.fetch(`*[_type == 'aiTool']{title, toolWebsiteURL}`);
+    const newTitle = (title as string)?.trim().toLowerCase();
+    const newURL = (website as string)?.trim().toLowerCase();
+    const duplicate = allTools.find((tool: any) =>
+      (tool.title && tool.title.trim().toLowerCase() === newTitle) ||
+      (tool.toolWebsiteURL && tool.toolWebsiteURL.trim().toLowerCase() === newURL)
+    );
+    if (duplicate) {
+      return parseServerActionResponse({
+        error: `This AI tool already exists with the same name or URL.\nTool already exists: ${duplicate.title} – ${duplicate.toolWebsiteURL}`,
+        status: "ERROR",
+      });
+    }
+
     // Always set status to 'pending' on submission
     const status = "pending";
 
@@ -175,15 +190,24 @@ export const toggleUserAdmin = async (userId: string, current: boolean) => {
   }
 };
 
-export const deleteUser = async (userId: string) => {
+export async function deleteUser(userId: string) {
   try {
     await writeClient.delete(userId);
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    return { success: false, error: JSON.stringify(error) };
+  } catch (error: any) {
+    if (
+      error?.details?.type === "mutationError" &&
+      error?.details?.items?.[0]?.error?.type === "documentHasExistingReferencesError"
+    ) {
+      return {
+        success: false,
+        error: "REFERENCED",
+        message: "Cannot delete user: This user is still referenced by other content. Please remove or reassign those references first.",
+        referencingIDs: error.details.items[0].error.referencingIDs,
+      };
+    }
+    return { success: false, error: "GENERIC", message: "Failed to delete user." };
   }
-};
+}
 
 export const deleteAiTool = async (aiToolId: string) => {
   try {

@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { client } from "@/sanity/lib/client";
-import { SEARCH_ALL_QUERY } from "@/sanity/lib/queries";
+import { searchAll } from "@/lib/sanity-client";
 import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
 import BlogCard from "@/components/BlogCard";
 import { motion } from "framer-motion";
@@ -28,8 +27,13 @@ function SearchContent() {
 
       setLoading(true);
       try {
-        const results = await client.fetch(SEARCH_ALL_QUERY, { search: `*${query}*` });
-        setSearchResults(results);
+        const result = await searchAll(query);
+        if (result.success) {
+          setSearchResults(result.data);
+        } else {
+          console.error("Search error:", result.error);
+          setSearchResults({ aiTools: [], blogs: [] });
+        }
       } catch (error) {
         console.error("Search error:", error);
         setSearchResults({ aiTools: [], blogs: [] });

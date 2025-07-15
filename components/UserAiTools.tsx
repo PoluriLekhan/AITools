@@ -1,10 +1,10 @@
 import React from "react";
-import { client } from "@/sanity/lib/client";
-import { AITOOLS_BY_AUTHOR_QUERY } from "@/sanity/lib/queries";
+import { fetchAIToolsByAuthor } from "@/lib/sanity-client";
 import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
 
 const UserAiTools = async ({ id, status }: { id: string; status?: string }) => {
-  const aiTools = await client.fetch(AITOOLS_BY_AUTHOR_QUERY, { id });
+  const result = await fetchAIToolsByAuthor(id);
+  const aiTools = result.success ? result.data : [];
   
   // Filter by status if provided
   const filteredTools = status 

@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { client } from "@/sanity/lib/client";
-import { AITOOL_VIEWS_QUERY } from "@/sanity/lib/queries";
 import { HeartIcon } from "lucide-react";
 
 const View = ({ id }: { id: string }) => {
@@ -9,15 +7,32 @@ const View = ({ id }: { id: string }) => {
   const [totalLikes, setTotalLikes] = useState<number | null>(null);
 
   useEffect(() => {
-    client.fetch(AITOOL_VIEWS_QUERY, { id }).then((data) => {
-      setTotalViews(data.views);
-      setTotalLikes(data.likes);
-      fetch("/api/increment-views", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, views: data.views }),
-      });
-    });
+    const fetchViews = async () => {
+      try {
+        const response = await fetch("/api/ai-tools/views", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setTotalViews(data.views);
+          setTotalLikes(data.likes);
+          
+          // Increment views
+          fetch("/api/increment-views", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, views: data.views }),
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching views:", error);
+      }
+    };
+
+    fetchViews();
   }, [id]);
 
   if (totalViews === null) return null; // or a loading spinner

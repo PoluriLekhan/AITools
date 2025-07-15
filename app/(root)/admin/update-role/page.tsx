@@ -45,7 +45,6 @@ export default function UpdateRolePage() {
   return (
     <div className="max-w-md mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Update User Role to Admin</h1>
-      
       <div className="space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-2">
@@ -60,7 +59,6 @@ export default function UpdateRolePage() {
             placeholder="Enter email address"
           />
         </div>
-        
         <button
           onClick={handleUpdateRole}
           disabled={loading}
@@ -68,7 +66,6 @@ export default function UpdateRolePage() {
         >
           {loading ? "Updating..." : "Update to Admin"}
         </button>
-        
         {result && (
           <div className={`p-4 rounded-md ${
             result.success 
@@ -79,7 +76,6 @@ export default function UpdateRolePage() {
           </div>
         )}
       </div>
-      
       <div className="mt-6 p-4 bg-gray-100 rounded-md">
         <h3 className="font-semibold mb-2">Instructions:</h3>
         <ol className="list-decimal list-inside space-y-1 text-sm">

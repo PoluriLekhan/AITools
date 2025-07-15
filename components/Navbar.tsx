@@ -7,11 +7,7 @@ import { getAuth, signOut } from "firebase/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { client } from "@/sanity/lib/client";
-import { AUTHOR_BY_EMAIL_QUERY, UNSEEN_NOTIFICATIONS_COUNT_QUERY } from "@/sanity/lib/queries";
-// Add query for pending blogs
-import { defineQuery } from "next-sanity";
-const PENDING_BLOGS_COUNT_QUERY = defineQuery(`count(*[_type == "blog" && status == "pending"])`);
+import { fetchAuthorByEmail, fetchUnseenNotificationsCount, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
@@ -85,19 +81,21 @@ const Navbar = () => {
   useEffect(() => {
     const checkAdmin = async () => {
       if (user?.email) {
-        const author = await client.fetch(AUTHOR_BY_EMAIL_QUERY, { email: user.email });
+        const authorResult = await fetchAuthorByEmail(user.email);
+        const author = authorResult.success ? authorResult.data : null;
         setIsAdmin(!!author?.isAdmin);
+        
         if (author?.isAdmin) {
-          const count = await client.fetch(PENDING_BLOGS_COUNT_QUERY);
-          setPendingCount(count);
+          const pendingResult = await fetchPendingBlogsCount();
+          const pendingCount = pendingResult.success ? pendingResult.data : 0;
+          setPendingCount(pendingCount);
         } else {
           setPendingCount(0);
         }
         
         // Fetch unseen notifications count for all users
-        const unseenCount = await client.fetch(UNSEEN_NOTIFICATIONS_COUNT_QUERY, { 
-          userEmail: user.email 
-        });
+        const unseenResult = await fetchUnseenNotificationsCount(user.email);
+        const unseenCount = unseenResult.success ? unseenResult.data : 0;
         setUnseenNotificationsCount(unseenCount);
       } else {
         setIsAdmin(false);
