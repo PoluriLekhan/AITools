@@ -80,6 +80,15 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
     })
     .slice(0, 5);
 
+  // Most Viewed: sort by views in descending order
+  const mostViewedTools = [...aiTools]
+    .sort((a, b) => {
+      const viewsA = b.views || 0;
+      const viewsB = a.views || 0;
+      return viewsB - viewsA; // Descending order (highest views first)
+    })
+    .slice(0, 5);
+
   // Filter by category
   const filteredTools = selectedCategory
     ? aiTools.filter(tool => tool.category === selectedCategory)
@@ -186,11 +195,41 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
             </motion.div>
           ))}
         </ul>
-        
         {/* Show total count of trending tools */}
         <div className="text-center mt-6">
           <p className="text-gray-600 text-sm">
             Showing top {trendingTools.length} of {aiTools.length} AI tools by likes
+          </p>
+        </div>
+      </section>
+
+      {/* Most Viewed Section */}
+      <section className="section_container mt-8">
+        <h2 className="text-2xl font-bold mb-2 gradient-text">Most Viewed AI Tools</h2>
+        <p className="text-gray-600 mb-4">Top AI tools ranked by total views</p>
+        <ul className="card_grid-sm">
+          {mostViewedTools.map((tool, index) => (
+            <motion.div key={tool._id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+              <div className="relative">
+                <AiToolCard post={tool} />
+                {/* Show ranking badge for top 3 */}
+                {index < 3 && (
+                  <div className={`absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-500' : 
+                    index === 1 ? 'bg-gray-400' : 
+                    'bg-orange-500'
+                  }`}>
+                    {index + 1}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </ul>
+        {/* Show total count of most viewed tools */}
+        <div className="text-center mt-6">
+          <p className="text-gray-600 text-sm">
+            Showing top {mostViewedTools.length} of {aiTools.length} AI tools by views
           </p>
         </div>
       </section>
