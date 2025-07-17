@@ -133,6 +133,7 @@ const Navbar = () => {
   }
   const navLinks: NavLink[] = [
     { href: "/", label: "Home", icon: <Home className="w-5 h-5" /> },
+    { href: "/pricing", label: "Pricing", icon: <span className="w-5 h-5">💲</span> },
     { href: "https://portifolio-steel-psi-95.vercel.app/", label: "About", icon: <ExternalLink className="w-5 h-5" />, isExternal: true },
     ...(user ? [{ href: "/ai-tool/create", label: "Create", icon: <Plus className="w-5 h-5" /> }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: <Shield className="w-5 h-5" />, badge: pendingCount }] : []),
@@ -157,19 +158,20 @@ const Navbar = () => {
                   width={144} 
                   height={30} 
                   priority 
-                  className="h-8 w-auto"
+                  className="h-8 w-auto drop-shadow-md transition-transform duration-300 hover:scale-105"
                 />
               </Link>
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-8">
-              {navLinks.map((link) => (
+              {navLinks.map((link, idx) => (
                 link.isExternal ? (
                   <button
                     key={link.href}
                     onClick={() => handleExternalLink(link.href)}
-                    className="relative px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 font-medium flex items-center space-x-1"
+                    className="relative px-3 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-300 font-medium flex items-center space-x-1 shadow-sm hover:shadow-md animate-fade-in"
+                    style={{ animationDelay: `${idx * 60}ms` }}
                   >
                     <span>{link.label}</span>
                     <ExternalLink className="w-4 h-4" />
@@ -183,7 +185,8 @@ const Navbar = () => {
                   <Link 
                     key={link.href} 
                     href={link.href} 
-                    className="relative px-3 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 font-medium"
+                    className="relative px-3 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-300 font-medium shadow-sm hover:shadow-md animate-fade-in"
+                    style={{ animationDelay: `${idx * 60}ms` }}
                   >
                     {link.label}
                     {link.badge !== undefined && link.badge > 0 && (

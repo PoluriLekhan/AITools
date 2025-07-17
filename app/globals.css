@@ -661,3 +661,50 @@
 .flex-1.overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.5);
 }
+
+/* Modern card and nav enhancements */
+.card_grid {
+  @apply grid md:grid-cols-3 sm:grid-cols-2 gap-8;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.7s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 1024px) {
+  .card_grid {
+    @apply grid-cols-1;
+  }
+}
+
+/* NavBar polish */
+.navbar-glass {
+  @apply bg-white/90 backdrop-blur-md shadow-lg border-b border-gray-100;
+}
+
+/* Pricing card hover effect */
+.pricing-card {
+  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400;
+}
+
+/* Responsive tweaks for pricing */
+@media (max-width: 640px) {
+  .card_grid {
+    @apply grid-cols-1;
+  }
+}
