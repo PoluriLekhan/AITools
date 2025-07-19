@@ -21,6 +21,7 @@ import { useRef } from "react";
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
+import { writeClient } from "@/sanity/lib/write-client";
 
 // Define types for User and Blog
 
@@ -109,6 +110,9 @@ export default function AdminPage() {
     content: "",
     type: "general"
   });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState<string>("");
+  const [editImageUrlInput, setEditImageUrlInput] = useState<string>("");
   const isSuperAdmin = users.find(u => u.email === user?.email)?.role === "super-admin";
   // Remove activeTab, Tabs, and Card usage
   // Restore original section stacking and layout
@@ -234,6 +238,9 @@ export default function AdminPage() {
   const handleEditAiTool = (aiTool: AiTool) => {
     setEditAiTool(aiTool);
     setEditForm({ ...aiTool });
+    setEditImageFile(null);
+    setEditImageUrl("");
+    setEditImageUrlInput("");
   };
 
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -246,10 +253,29 @@ export default function AdminPage() {
     }
   };
 
+  // Handle image upload to Sanity for edit modal
+  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEditImageFile(file);
+    // Upload to Sanity
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("_type", "image");
+    const res = await fetch("/api/sanity-upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.url) setEditImageUrl(data.url);
+  };
+
   const handleEditFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editAiTool || !editForm) return;
     
+    const toolImageToUpdate = editImageUrl || editImageUrlInput || editForm.toolImage;
+
     const result = await updateAiTool(editAiTool._id, {
       title: editForm.title,
       description: editForm.description,
@@ -257,7 +283,7 @@ export default function AdminPage() {
       category: editForm.category,
       subCategory: editForm.subCategory,
       toolWebsiteURL: editForm.toolWebsiteURL,
-      toolImage: editForm.toolImage,
+      toolImage: toolImageToUpdate,
       pitch: editForm.pitch,
       types: editForm.types,
     });
@@ -605,6 +631,15 @@ export default function AdminPage() {
                     <div className="font-semibold text-blue-700 line-clamp-1">{tool.title}</div>
                     {statusBadge(tool.status)}
                   </div>
+                  {/* Tool Image or Placeholder */}
+                  <div className="flex justify-center my-2">
+                    <img
+                      src={tool.toolImage ? tool.toolImage : "/logo.png"}
+                      alt={tool.title + " image"}
+                      className="w-24 h-24 object-cover rounded border"
+                      onError={e => { e.currentTarget.src = "/logo.png"; }}
+                    />
+                  </div>
                   <div className="text-gray-600 line-clamp-2 mb-2">{tool.description}</div>
                   <div className="flex flex-wrap gap-2 text-xs">
                     {Array.from(new Set(tool.types))?.map(type => (
@@ -673,12 +708,39 @@ export default function AdminPage() {
                   onChange={handleEditFormChange}
                   placeholder="Tool Website URL"
                 />
+                {/* Tool Image Preview and Edit */}
+                <div className="my-4 p-4 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center gap-3">
+                  <div className="w-full">
+                    <label htmlFor="editToolImageUrl" className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                    <input
+                      id="editToolImageUrl"
+                      name="editToolImageUrl"
+                      type="url"
+                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+                      placeholder="https://example.com/image.png"
+                      value={editImageUrlInput}
+                      onChange={e => setEditImageUrlInput(e.target.value)}
+                    />
+                  </div>
+                  {(editImageUrlInput || editForm?.toolImage) && (
+                    <div className="flex justify-center mt-3 w-full">
+                      <img
+                        src={editImageUrlInput || editForm?.toolImage || "/logo.png"}
+                        alt={editForm?.title + " image"}
+                        className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 shadow-sm bg-white"
+                        onError={e => { e.currentTarget.src = "/logo.png"; }}
+                      />
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2 text-center">Recommended: Square image, at least 256x256px. Supported: JPG, PNG, GIF, WEBP, SVG.</p>
+                </div>
                 <input
                   className="w-full p-2 mb-2 border rounded"
                   name="toolImage"
-                  value={editForm?.toolImage || ""}
+                  value={editImageUrl || editImageUrlInput || editForm?.toolImage || ""}
                   onChange={handleEditFormChange}
                   placeholder="Tool Image URL"
+                  style={{ display: 'none' }}
                 />
                 <input
                   className="w-full p-2 mb-2 border rounded"

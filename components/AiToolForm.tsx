@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { createAiTool } from "@/lib/actions";
 import { useAuth } from "@/components/AuthProvider";
 import { fetchAIToolTitlesAndURLs } from "@/lib/sanity-client";
+import { writeClient } from "@/sanity/lib/write-client";
 
 const AiToolForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -27,6 +28,9 @@ const AiToolForm = () => {
   const { user } = useAuth();
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [isPending, setIsPending] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [imageUrlInput, setImageUrlInput] = useState<string>("");
 
   interface AiToolFormState {
     error: string;
@@ -118,6 +122,23 @@ const AiToolForm = () => {
     setIsAddingCustom(false);
   };
 
+  // Handle image upload to Sanity
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    // Upload to Sanity
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("_type", "image");
+    const res = await fetch("/api/sanity-upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.url) setImageUrl(data.url);
+  };
+
   const handleFormSubmit = async (formData: FormData) => {
     try {
       // Duplicate check (frontend)
@@ -160,7 +181,7 @@ const AiToolForm = () => {
         description: formData.get("description") as string,
         category: formData.get("category") as string,
         website: formData.get("website") as string,
-        thumbnail: formData.get("thumbnail") as string,
+        toolImage: imageUrl || imageUrlInput,
         pitch,
         types: finalTypes,
       };
@@ -214,7 +235,7 @@ const AiToolForm = () => {
           views: 0,
           description: formValues.description,
           category: formValues.category,
-          image: formValues.thumbnail,
+          image: formValues.toolImage,
           types: finalTypes,
           toolWebsiteURL: formValues.website,
           status: "pending",
@@ -482,18 +503,30 @@ const AiToolForm = () => {
         {errors.website && <p className="ai-tool-form_error">{errors.website}</p>}
       </div>
 
-      <div>
-        <label htmlFor="thumbnail" className="ai-tool-form_label">
-          Thumbnail Image URL
-        </label>
-        <Input
-          id="thumbnail"
-          name="thumbnail"
-          className="ai-tool-form_input"
-          required
-          placeholder="AI Tool Thumbnail Image URL (jpg, png, gif, webp, svg)"
-        />
-        {errors.thumbnail && <p className="ai-tool-form_error">{errors.thumbnail}</p>}
+      <div className="my-4 p-4 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center gap-3">
+        <div className="w-full">
+          <label htmlFor="toolImageUrl" className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+          <input
+            id="toolImageUrl"
+            name="toolImageUrl"
+            type="url"
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
+            placeholder="https://example.com/image.png"
+            value={imageUrlInput}
+            onChange={e => setImageUrlInput(e.target.value)}
+          />
+        </div>
+        {imageUrlInput && (
+          <div className="flex justify-center mt-3 w-full">
+            <img
+              src={imageUrlInput || "/logo.png"}
+              alt="Tool Preview"
+              className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 shadow-sm bg-white"
+              onError={e => { e.currentTarget.src = "/logo.png"; }}
+            />
+          </div>
+        )}
+        <p className="text-xs text-gray-500 mt-2 text-center">Recommended: Square image, at least 256x256px. Supported: JPG, PNG, GIF, WEBP, SVG.</p>
       </div>
 
       <div data-color-mode="light">

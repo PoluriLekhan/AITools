@@ -708,3 +708,66 @@
     @apply grid-cols-1;
   }
 }
+
+  /* --- Modern Gradients & Animated Backgrounds --- */
+  .gradient-bg {
+    background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+  }
+  .gradient-hero {
+    background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
+    animation: gradient-move 8s ease-in-out infinite alternate;
+    background-size: 200% 200%;
+  }
+  .gradient-card {
+    background: linear-gradient(120deg, #fbc2eb 0%, #a6c1ee 100%);
+  }
+  .gradient-border {
+    border: 3px solid transparent;
+    border-radius: 1.5rem;
+    background: linear-gradient(white, white) padding-box, linear-gradient(90deg, #a18cd1, #fbc2eb, #fda085) border-box;
+  }
+  @keyframes gradient-move {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+
+  /* --- Glassmorphism --- */
+  .glass {
+    background: rgba(255,255,255,0.25);
+    box-shadow: 0 8px 32px 0 rgba(31,38,135,0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.18);
+  }
+
+  /* --- Premium Card & Button Effects --- */
+  .premium-card {
+    @apply gradient-card shadow-2xl gradient-border transition-transform duration-300 hover:scale-105 hover:shadow-xl;
+  }
+  .premium-btn {
+    @apply px-6 py-3 rounded-full font-bold text-lg shadow-lg transition-all duration-300;
+    background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%);
+    color: #fff;
+    border: none;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+  }
+  .premium-btn::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: linear-gradient(120deg, #f6d365 0%, #fda085 100%);
+    opacity: 0;
+    transition: opacity 0.4s;
+    z-index: 0;
+    border-radius: inherit;
+  }
+  .premium-btn:hover::after {
+    opacity: 0.2;
+  }
+  .premium-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }

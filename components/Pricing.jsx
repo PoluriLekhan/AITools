@@ -1,43 +1,69 @@
 'use client';
 
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 
-const RAZORPAY_KEY = "rzp_test_1DP5mmOlF5G5ag"; // Dummy test key
+const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
-const handleRazorpay = (amount, plan) => {
-  if (typeof window === "undefined") return;
-  const script = document.createElement("script");
-  script.src = "https://checkout.razorpay.com/v1/checkout.js";
-  script.async = true;
-  script.onload = () => {
-    const options = {
-      key: RAZORPAY_KEY,
-      amount: amount * 100, // in paise
-      currency: "INR",
-      name: plan + " Plan",
-      description: `Purchase the ${plan} Plan`,
-      image: "/logo.png",
-      handler: function (response) {
-        alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
-      },
-      prefill: {
-        name: "Test User",
-        email: "test@example.com",
-        contact: "9999999999",
-      },
-      theme: {
-        color: "#3056D3",
-      },
+const handleRazorpay = async (amount, plan, setLoading, planKey) => {
+  setLoading(prev => ({ ...prev, [planKey]: true }));
+  try {
+    const res = await fetch("/api/create-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount }),
+    });
+    const data = await res.json();
+    if (!data.orderId) throw new Error("Order creation failed");
+    // Remove any existing Razorpay script to avoid duplicates
+    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existingScript) existingScript.remove();
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => {
+      const options = {
+        key: RAZORPAY_KEY,
+        amount: amount * 100,
+        currency: "INR",
+        name: plan + " Plan",
+        description: "Lekhan Studio AI Plan",
+        image: "/logo.png",
+        order_id: data.orderId,
+        handler: function (response) {
+          alert("Payment Successful!");
+        },
+        prefill: {
+          name: "Test User",
+          email: "test@example.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#0d6efd",
+        },
+        modal: {
+          ondismiss: function () {
+            alert("Payment Failed or Cancelled");
+          },
+        },
+      };
+      // eslint-disable-next-line no-undef
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function () {
+        alert("Payment Failed or Cancelled");
+      });
+      rzp.open();
     };
-    // eslint-disable-next-line no-undef
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-  };
-  document.body.appendChild(script);
+    document.body.appendChild(script);
+  } catch (err) {
+    alert("Order creation failed");
+  } finally {
+    setLoading(prev => ({ ...prev, [planKey]: false }));
+  }
 };
 
 const Pricing = () => {
+  const [loading, setLoading] = useState({ basic: false, premium: false });
   return (
     <section className="relative z-10 overflow-hidden bg-gradient-to-br from-white via-blue-50 to-blue-100 pb-12 pt-20 lg:pb-[90px] lg:pt-[120px] animate-fade-in">
       <div className="container mx-auto px-4">
@@ -54,8 +80,8 @@ const Pricing = () => {
             price="₹0"
             subscription="lifetime"
             description="Great to explore basic AI tools and features."
-            buttonText="Start for Free"
-            onClick={() => alert('Enjoy the Free Plan!')}
+            buttonText={null}
+            onClick={null}
             features={[
               "Access to Free AI Tools",
               "Basic Support",
@@ -65,12 +91,12 @@ const Pricing = () => {
             active={false}
           />
           <PricingCard
-            type="Starter Plan"
+            type="Basic Plan"
             price="₹49"
             subscription="month"
             description="Ideal for personal use and light projects."
-            buttonText="Buy Now"
-            onClick={() => handleRazorpay(49, 'Starter')}
+            buttonText={loading.basic ? "Processing..." : "Buy Now"}
+            onClick={() => handleRazorpay(49, 'Basic', setLoading, 'basic')}
             features={[
               "All Free Plan Features",
               "Early Access to New Tools",
@@ -81,14 +107,14 @@ const Pricing = () => {
             active={true}
           />
           <PricingCard
-            type="Pro Plan"
+            type="Premium Plan"
             price="₹249"
             subscription="month"
             description="Perfect for professionals and heavy AI users."
-            buttonText="Buy Now"
-            onClick={() => handleRazorpay(249, 'Pro')}
+            buttonText={loading.premium ? "Processing..." : "Buy Now"}
+            onClick={() => handleRazorpay(249, 'Premium', setLoading, 'premium')}
             features={[
-              "All Starter Plan Features",
+              "All Basic Plan Features",
               "Unlimited Access to All Tools",
               "Priority Support",
               "API Integrations",
@@ -105,7 +131,7 @@ const Pricing = () => {
 
 const PricingCard = ({ type, price, subscription, description, buttonText, onClick, features, active }) => {
   return (
-    <Card className={`relative z-10 mb-10 overflow-hidden rounded-2xl border-2 border-blue-200 bg-white px-8 py-10 shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400 ${active ? 'scale-105 border-primary shadow-2xl' : ''} animate-scale-in`}> 
+    <Card className={`relative z-10 mb-10 overflow-hidden rounded-2xl border-2 border-blue-200 bg-white px-8 py-10 shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-blue-400 ${active ? 'scale-105 border-primary shadow-2xl' : ''} animate-scale-in`}>
       <span className="mb-3 block text-lg font-semibold text-blue-600">{type}</span>
       <h2 className="mb-5 text-[42px] font-bold text-gray-900">
         {price}
@@ -117,12 +143,21 @@ const PricingCard = ({ type, price, subscription, description, buttonText, onCli
           <li key={i} className="flex items-center gap-2 text-gray-700"><span className="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>{f}</li>
         ))}
       </ul>
-      <button
-        onClick={onClick}
-        className={`w-full rounded-md border border-primary bg-primary p-3 text-center text-base font-medium text-white transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 shadow-md ${active ? 'shadow-lg' : ''}`}
-      >
-        {buttonText}
-      </button>
+      {buttonText ? (
+        <button
+          onClick={onClick}
+          className={`w-full rounded-md border border-primary bg-primary p-3 text-center text-base font-medium text-white transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 shadow-md ${active ? 'shadow-lg' : ''}`}
+        >
+          {buttonText}
+        </button>
+      ) : (
+        <button
+          disabled
+          className="w-full rounded-md border border-gray-300 bg-gray-200 p-3 text-center text-base font-medium text-gray-400 cursor-not-allowed shadow-md"
+        >
+          Free
+        </button>
+      )}
       {/* Decorative SVGs for modern look */}
       <span className="absolute right-0 top-7 z-[-1] opacity-40">
         <svg width={77} height={172} viewBox="0 0 77 172" fill="none" xmlns="http://www.w3.org/2000/svg">

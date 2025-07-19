@@ -92,6 +92,10 @@ export async function fetchAIToolsByAuthor(authorId: string) {
 export async function fetchAuthorByEmail(email: string) {
   try {
     const author = await client.fetch(AUTHOR_BY_EMAIL_QUERY, { email });
+    if (!author) {
+      console.warn(`No author found for email: ${email}`);
+      return { success: false, error: "Author not found" };
+    }
     return { success: true, data: author };
   } catch (error) {
     console.error("Error fetching author:", error);
