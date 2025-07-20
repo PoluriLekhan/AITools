@@ -19,7 +19,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
         const data = await client.fetch(AITOOLS_QUERY);
         // Filter tools by the selected category
         const filteredTools = data.filter((tool: AiToolTypeCard) => 
-          tool.category?.toLowerCase() === category.toLowerCase()
+          tool.category && category && tool.category.toLowerCase() === category.toLowerCase()
         );
         setAiTools(filteredTools);
         setLoading(false);
@@ -56,10 +56,10 @@ export default function CategoryPage({ params }: { params: { category: string } 
     if (search.trim()) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(tool => 
-        tool.title?.toLowerCase().includes(searchLower) || 
-        tool.description?.toLowerCase().includes(searchLower) ||
-        tool.category?.toLowerCase().includes(searchLower) ||
-        tool.author?.name?.toLowerCase().includes(searchLower)
+        (tool.title && tool.title.toLowerCase().includes(searchLower)) || 
+        (tool.description && tool.description.toLowerCase().includes(searchLower)) ||
+        (tool.category && tool.category.toLowerCase().includes(searchLower)) ||
+        (tool.author?.name && tool.author.name.toLowerCase().includes(searchLower))
       );
     }
     

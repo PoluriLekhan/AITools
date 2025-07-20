@@ -107,8 +107,10 @@ const UsefulWebsiteForm = () => {
           category: formValues.category,
           websiteURL: formValues.websiteURL,
           websiteImage: "/logo.png",
+          thumbnail: "/logo.png", // Send thumbnail to match backend schema
           pitch: formValues.pitch,
           authorId: user.uid,
+          amount: typeof formData.get("amount") === "string" && formData.get("amount") !== "" ? Number(formData.get("amount")) : 0,
         }),
       });
 

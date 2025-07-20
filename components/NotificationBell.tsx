@@ -39,6 +39,8 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [deletionTimers, setDeletionTimers] = useState<{ [key: string]: NodeJS.Timeout }>({});
+  // Prevent multiple simultaneous fetches
+  const [isFetchingNotifications, setIsFetchingNotifications] = useState(false);
 
   // Fetch unseen notifications count
   const fetchUnseenCount = async () => {
@@ -46,20 +48,23 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
       console.warn("No user email, skipping notifications fetch (unseen count)");
       return;
     }
-    
+    if (isFetchingNotifications) return;
+    setIsFetchingNotifications(true);
     try {
       const response = await fetch("/api/notifications/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEmail: user.email, type: "count" }),
       });
-      
+      console.log("Request body for /api/notifications/fetch (count):", { userEmail: user.email, type: "count" });
       if (response.ok) {
         const count = await response.json();
         setUnseenCount(count);
       }
     } catch (error) {
       console.error("Error fetching unseen notifications count:", error);
+    } finally {
+      setIsFetchingNotifications(false);
     }
   };
 
@@ -69,20 +74,23 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
       console.warn("No user email, skipping notifications fetch (all notifications)");
       return;
     }
-    
+    if (isFetchingNotifications) return;
+    setIsFetchingNotifications(true);
     try {
       const response = await fetch("/api/notifications/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEmail: user.email, type: "all" }),
       });
-      
+      console.log("Request body for /api/notifications/fetch (all):", { userEmail: user.email, type: "all" });
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
+    } finally {
+      setIsFetchingNotifications(false);
     }
   };
 

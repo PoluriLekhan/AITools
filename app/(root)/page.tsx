@@ -32,7 +32,11 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
         toast({
           title: `Welcome, ${user.displayName || user.email}!`,
         });
-        localStorage.removeItem("justLoggedIn");
+        try {
+          localStorage.removeItem("justLoggedIn");
+        } catch (e) {
+          console.warn("Could not remove justLoggedIn from localStorage:", e);
+        }
       }
     }
   }, [user, toast]);

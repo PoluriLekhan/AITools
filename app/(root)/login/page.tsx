@@ -36,7 +36,11 @@ const LoginPage = () => {
           description: `Welcome, ${user.displayName || user.email}!`,
         });
         if (typeof window !== "undefined") {
-          localStorage.setItem("justLoggedIn", "1");
+          try {
+            localStorage.setItem("justLoggedIn", "1");
+          } catch (e) {
+            console.warn("Could not set justLoggedIn in localStorage:", e);
+          }
         }
         setTimeout(() => {
           router.push("/");

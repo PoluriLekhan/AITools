@@ -5,9 +5,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     console.log("Received body in /api/notifications/fetch:", body);
+    console.log("Received headers in /api/notifications/fetch:", Object.fromEntries(request.headers.entries()));
     const { userEmail, type } = body;
     
-    if (!userEmail) {
+    if (!userEmail || typeof userEmail !== 'string' || userEmail.trim() === '') {
       return NextResponse.json(
         { error: "User email is required in request body", received: body },
         { status: 400 }
