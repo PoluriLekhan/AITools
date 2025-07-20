@@ -7,9 +7,9 @@ import { getAuth, signOut } from "firebase/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchAuthorByEmail, fetchUnseenNotificationsCount, fetchPendingBlogsCount, fetchUserFavorites } from "@/lib/sanity-client";
+import { fetchAuthorByEmail, fetchUnseenNotificationsCount, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe, Heart } from "lucide-react";
+import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 const Navbar = () => {
@@ -23,7 +23,6 @@ const Navbar = () => {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAboutDropdownMobile, setShowAboutDropdownMobile] = useState(false);
-  // Remove all favoritesCount state, fetchUserFavorites, and badge logic for Favorites link
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
@@ -107,8 +106,6 @@ const Navbar = () => {
     };
     checkAdmin();
   }, [user]);
-
-  // Remove all favoritesCount state, fetchUserFavorites, and badge logic for Favorites link
 
   const handleLogout = async () => {
     const auth = getAuth();

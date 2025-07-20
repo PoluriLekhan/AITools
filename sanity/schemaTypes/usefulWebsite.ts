@@ -46,27 +46,6 @@ export const usefulWebsite = defineType({
       initialValue: 0,
     }),
     defineField({
-      name: "likes",
-      type: "number",
-      title: "Likes",
-      initialValue: 0,
-    }),
-
-    defineField({
-      name: "autoIncrementViews",
-      type: "boolean",
-      title: "Auto Increment Views",
-      description: "Automatically increment views when website is viewed",
-      initialValue: true,
-    }),
-    defineField({
-      name: "autoIncrementLikes",
-      type: "boolean",
-      title: "Auto Increment Likes",
-      description: "Automatically increment likes when user likes the website",
-      initialValue: true,
-    }),
-    defineField({
       name: "status",
       type: "string",
       options: {

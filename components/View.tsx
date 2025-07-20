@@ -1,10 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { HeartIcon } from "lucide-react";
 
 const View = ({ id }: { id: string }) => {
   const [totalViews, setTotalViews] = useState<number | null>(null);
-  const [totalLikes, setTotalLikes] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const incrementViews = async (id: string) => {
@@ -33,7 +31,6 @@ const View = ({ id }: { id: string }) => {
         if (response.ok) {
           const data = await response.json();
           setTotalViews(data.views);
-          setTotalLikes(data.likes);
           
           // Increment views
           incrementViews(id);
@@ -51,10 +48,6 @@ const View = ({ id }: { id: string }) => {
   return (
     <div className="flex gap-4 items-center">
       <span>{totalViews} views</span>
-      <div className="flex gap-1 items-center">
-        <HeartIcon className="size-4 text-red-500" />
-        <span>{totalLikes || 0} likes</span>
-      </div>
     </div>
   );
 };

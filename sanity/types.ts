@@ -13,29 +13,6 @@
  */
 
 // Source: schema.json
-export type UserLike = {
-  _id: string;
-  _type: "userLike";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  userId?: string;
-  userEmail?: string;
-  aiToolId?: {
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "aiTool";
-  };
-  usefulWebsiteId?: {
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "usefulWebsite";
-  };
-  likedAt?: string;
-};
-
 export type UsefulWebsite = {
   _id: string;
   _type: "usefulWebsite";
@@ -49,9 +26,6 @@ export type UsefulWebsite = {
   websiteImage?: string;
   pitch?: string;
   views?: number;
-  likes?: number;
-  autoIncrementViews?: boolean;
-  autoIncrementLikes?: boolean;
   status?: "pending" | "approved" | "rejected";
   author?: {
     _ref: string;
@@ -144,9 +118,6 @@ export type AiTool = {
   toolWebsiteURL?: string;
   pitch?: string;
   views?: number;
-  likes?: number;
-  autoIncrementViews?: boolean;
-  autoIncrementLikes?: boolean;
   status?: "pending" | "approved" | "rejected";
   author?: {
     _ref: string;
@@ -292,5 +263,5 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = UserLike | UsefulWebsite | Notification | Blog | Playlist | AiTool | Author | Markdown | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = UsefulWebsite | Notification | Blog | Playlist | AiTool | Author | Markdown | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;

@@ -132,9 +132,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
               <div>
                 <span className="font-semibold">Views:</span> {website.views || 0}
               </div>
-              <div>
-                <span className="font-semibold">Likes:</span> {website.likes || 0}
-              </div>
+              {/* Remove any display of likes or like count from the page */}
             </div>
           </div>
         </div>

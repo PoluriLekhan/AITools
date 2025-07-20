@@ -68,24 +68,10 @@ export const aiTool = defineType({
       initialValue: 0,
     }),
     defineField({
-      name: "likes",
-      type: "number",
-      title: "Likes",
-      initialValue: 0,
-    }),
-
-    defineField({
       name: "autoIncrementViews",
       type: "boolean",
       title: "Auto Increment Views",
       description: "Automatically increment views when tool is viewed",
-      initialValue: true,
-    }),
-    defineField({
-      name: "autoIncrementLikes",
-      type: "boolean",
-      title: "Auto Increment Likes",
-      description: "Automatically increment likes when user likes the tool",
       initialValue: true,
     }),
     defineField({

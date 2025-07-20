@@ -52,10 +52,8 @@ export async function POST(request: NextRequest) {
       pitch: pitch || "",
       status: "pending",
       views: 0,
-      likes: 0,
       amount: typeof amount === 'number' ? amount : 0,
       autoIncrementViews: true,
-      autoIncrementLikes: true,
       author: {
         _type: "reference",
         _ref: sanityAuthorId,

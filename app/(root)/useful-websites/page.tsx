@@ -149,7 +149,7 @@ export default function UsefulWebsitesPage() {
       <div className="text-center mt-12 py-8 bg-gray-50 rounded-lg">
         <h3 className="text-xl font-semibold mb-3">Have a useful website to share?</h3>
         <p className="text-gray-600 mb-4">
-          Submit your favorite websites and help others discover great resources!
+          Submit useful websites and help others discover great resources!
         </p>
         <Link 
           href="/submit"

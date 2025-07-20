@@ -1,6 +1,6 @@
 "use client";
 import { cn, formatDate } from "@/lib/utils";
-import { EyeIcon, HeartIcon, ExternalLinkIcon } from "lucide-react";
+import { EyeIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -14,42 +14,14 @@ export type AiToolTypeCard = Omit<AiTool, "author"> & { author?: Author };
 
 interface AiToolCardProps {
   post: AiToolTypeCard;
-  onUnfavorite?: () => void;
 }
 
-const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
+const AiToolCard = ({ post }: AiToolCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [currentLikes, setCurrentLikes] = useState(post.likes || 0);
-  const [isLiking, setIsLiking] = useState(false);
-  const [hasLiked, setHasLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
   
-  const { _createdAt, views, likes, author, title, category, _id, description, types, toolWebsiteURL, toolImage } = post;
-
-  // Check if user has already liked this tool on component mount
-  useEffect(() => {
-    const checkUserLike = async () => {
-      if (!user?.uid || !_id) return;
-      try {
-        const response = await fetch("/api/check-user-like", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ aiToolId: _id, userId: user.uid, userEmail: user.email }),
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setHasLiked(data.hasLiked);
-        }
-      } catch (error) {
-        console.error("Error checking user like:", error);
-      }
-    };
-
-    checkUserLike();
-  }, [user?.uid, _id]);
+  const { _createdAt, views, author, title, category, _id, description, types, toolWebsiteURL, toolImage } = post;
 
   // Deduplicate types to prevent duplicates from showing
   const uniqueTypes = Array.isArray(types) ? [...new Set(types)] : [];
@@ -82,82 +54,6 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
 
   const shouldShowImage = isValidImageUrl(displayImage) && !imageError;
 
-  const handleLike = async () => {
-    if (likeLoading || !user?.uid || !user?.email || !_id) return;
-    setLikeLoading(true);
-    if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to like AI tools",
-        variant: "destructive",
-      });
-      setLikeLoading(false);
-      return;
-    }
-    if (hasLiked) {
-      if (onUnfavorite) {
-        onUnfavorite();
-        setLikeLoading(false);
-        return;
-      }
-      toast({
-        title: "Already Liked",
-        description: "You have already liked this tool",
-        variant: "destructive",
-      });
-      setLikeLoading(false);
-      return;
-    }
-    try {
-      const response = await fetch("/api/increment-likes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          documentId: _id,
-          likes: currentLikes,
-          userId: user.uid,
-          userEmail: user.email,
-          documentType: "aiTool"
-        }),
-      });
-      
-      if (response.ok) {
-        window.dispatchEvent(new Event('favorite-added'));
-        setCurrentLikes((prev: number) => prev + 1);
-        setHasLiked(true);
-        toast({
-          title: "Liked!",
-          description: "Thank you for liking this AI tool",
-        });
-      } else {
-        const errorData = await response.json();
-        if (errorData.alreadyLiked) {
-          setHasLiked(true);
-          toast({
-            title: "Already Liked",
-            description: "You have already liked this tool",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: errorData.error || "Failed to like tool",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error incrementing likes:", error);
-      toast({
-        title: "Error",
-        description: "Failed to like tool. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLikeLoading(false);
-    }
-  };
-
   return (
     <li className="ai-tool-card group">
       <div className="flex-between">
@@ -166,14 +62,6 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
           <div className="flex gap-1.5 items-center">
             <EyeIcon className="size-5 text-primary" />
             <span className="text-14-medium">{views || 0}</span>
-          </div>
-          <div 
-            className={`flex gap-1.5 items-center cursor-pointer hover:scale-110 transition-transform ${hasLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
-            onClick={handleLike}
-            style={{ pointerEvents: likeLoading || !user?.uid || !user?.email || !_id ? 'none' : 'auto', opacity: likeLoading || !user?.uid || !user?.email || !_id ? 0.5 : 1 }}
-          >
-            <HeartIcon className={`size-5 ${hasLiked ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
-            <span className="text-14-medium">{currentLikes}</span>
           </div>
         </div>
       </div>

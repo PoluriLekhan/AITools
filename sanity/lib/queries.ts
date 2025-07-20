@@ -9,15 +9,12 @@ export const AITOOLS_QUERY =
     _id, name, image, bio
   }, 
   views,
-  likes,
   description,
   category,
   "image": toolImage,
   types,
   toolWebsiteURL,
   status,
-  autoIncrementViews,
-  autoIncrementLikes,
 }`);
 
 
@@ -37,7 +34,6 @@ export const SEARCH_AITOOLS_QUERY =
     _id, name, image, bio
   }, 
   views,
-  likes,
   description,
   category,
   "image": toolImage,
@@ -74,7 +70,6 @@ export const SEARCH_ALL_QUERY =
         _id, name, image, bio
       }, 
       views,
-      likes,
       description,
       category,
       "image": toolImage,
@@ -111,7 +106,6 @@ export const AITOOL_BY_ID_QUERY =
     _id, name, username, image, bio
   }, 
   views,
-  likes,
   description,
   category,
   "image": toolImage,
@@ -122,7 +116,7 @@ export const AITOOL_BY_ID_QUERY =
 
 export const AITOOL_VIEWS_QUERY = defineQuery(`
     *[_type == "aiTool" && _id == $id][0]{
-        _id, views, likes
+        _id, views
     }
 `);
 
@@ -190,14 +184,11 @@ export const USEFUL_WEBSITES_QUERY =
     _id, name, image, bio
   }, 
   views,
-  likes,
   description,
   category,
   "image": websiteImage,
   websiteURL,
   status,
-  autoIncrementViews,
-  autoIncrementLikes,
 }`);
 
 
@@ -269,7 +260,6 @@ export const ALL_AITOOLS_ADMIN_QUERY = defineQuery(`
     _id, name, image, bio
   }, 
   views,
-  likes,
   description,
   category,
   subCategory,
@@ -281,7 +271,6 @@ export const ALL_AITOOLS_ADMIN_QUERY = defineQuery(`
   isTrending,
   trendingOrder,
   autoIncrementViews,
-  autoIncrementLikes,
 }
 `);
 
@@ -340,40 +329,4 @@ export const ALL_NOTIFICATIONS_ADMIN_QUERY = defineQuery(`
     deletedAt
   }
 }
-`);
-
-export const USER_FAVORITES_QUERY = defineQuery(`
-  *[_type == "userLike" && userId == $userId] | order(likedAt desc) {
-    _id,
-    likedAt,
-    aiToolId-> {
-      _id,
-      title,
-      _createdAt,
-      author-> { _id, name, image, bio },
-      views,
-      likes,
-      description,
-      category,
-      "image": toolImage,
-      types,
-      toolWebsiteURL,
-      status,
-      _type
-    },
-    usefulWebsiteId-> {
-      _id,
-      title,
-      _createdAt,
-      author-> { _id, name, image, bio },
-      views,
-      likes,
-      description,
-      category,
-      "image": websiteImage,
-      websiteURL,
-      status,
-      _type
-    }
-  }
 `);
