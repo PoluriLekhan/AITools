@@ -5,13 +5,13 @@ import { Card } from "@/components/ui/card";
 
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
-const handleRazorpay = async (amount, plan, setLoading, planKey) => {
+const handleRazorpay = async (plan, setLoading, planKey) => {
   setLoading(prev => ({ ...prev, [planKey]: true }));
   try {
     const res = await fetch("/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: Number(amount) }), // Ensure amount is a number
+      body: JSON.stringify({}),
     });
     const data = await res.json();
     if (!data.orderId) throw new Error("Order creation failed");
@@ -24,7 +24,6 @@ const handleRazorpay = async (amount, plan, setLoading, planKey) => {
     script.onload = () => {
       const options = {
         key: RAZORPAY_KEY,
-        amount: amount * 100,
         currency: "INR",
         name: plan + " Plan",
         description: "Lekhan Studio AI Plan",
@@ -96,7 +95,7 @@ const Pricing = () => {
             subscription="month"
             description="Ideal for personal use and light projects."
             buttonText={loading.basic ? "Processing..." : "Buy Now"}
-            onClick={() => handleRazorpay(49, 'Basic', setLoading, 'basic')}
+            onClick={() => handleRazorpay('Basic', setLoading, 'basic')}
             features={[
               "All Free Plan Features",
               "Early Access to New Tools",
@@ -112,7 +111,7 @@ const Pricing = () => {
             subscription="month"
             description="Perfect for professionals and heavy AI users."
             buttonText={loading.premium ? "Processing..." : "Buy Now"}
-            onClick={() => handleRazorpay(249, 'Premium', setLoading, 'premium')}
+            onClick={() => handleRazorpay('Premium', setLoading, 'premium')}
             features={[
               "All Basic Plan Features",
               "Unlimited Access to All Tools",

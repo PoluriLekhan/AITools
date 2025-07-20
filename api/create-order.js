@@ -12,15 +12,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Razorpay keys not set in environment" });
   }
 
-  const { amount } = req.body;
-  if (!amount || typeof amount !== "number") {
-    return res.status(400).json({ error: "Amount is required and must be a number" });
-  }
-
   try {
     const razorpay = new Razorpay({ key_id, key_secret });
     const order = await razorpay.orders.create({
-      amount: amount * 100,
+      amount: 100, // Placeholder amount, as the original 'amount' field is removed
       currency: "INR",
       receipt: "rcpt_" + Date.now(),
     });
