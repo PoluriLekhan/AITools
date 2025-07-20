@@ -7,17 +7,15 @@ import { getAuth, signOut } from "firebase/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { fetchAuthorByEmail, fetchUnseenNotificationsCount, fetchPendingBlogsCount } from "@/lib/sanity-client";
+import { fetchAuthorByEmail, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
 
 const Navbar = () => {
   const { user } = useAuth();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  const [unseenNotificationsCount, setUnseenNotificationsCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -94,14 +92,9 @@ const Navbar = () => {
           setPendingCount(0);
         }
         
-        // Fetch unseen notifications count for all users
-        const unseenResult = await fetchUnseenNotificationsCount(user.email);
-        const unseenCount = unseenResult.success ? unseenResult.data : 0;
-        setUnseenNotificationsCount(unseenCount);
       } else {
         setIsAdmin(false);
         setPendingCount(0);
-        setUnseenNotificationsCount(0);
       }
     };
     checkAdmin();
@@ -214,7 +207,6 @@ const Navbar = () => {
             <div className="hidden lg:flex items-center space-x-4">
               {user ? (
                 <>
-                  <NotificationBell />
                   <Link href={`/user/${user.email}`}>
                     <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-gray-200 transition-all duration-200">
                       <AvatarImage src={user.photoURL || ""} alt={user.displayName || user.email || ""} />
@@ -247,7 +239,7 @@ const Navbar = () => {
               {/* Mobile Notification Bell (if user is logged in) */}
               {user && (
                 <div className="relative">
-                  <NotificationBell />
+                  <Bell className="w-6 h-6 text-gray-700" />
                 </div>
               )}
               

@@ -65,28 +65,6 @@ type Blog = {
   aiToolLink: string;
 };
 
-type Notification = {
-  _id: string;
-  title: string;
-  content: string;
-  type: string;
-  _createdAt: string;
-  expiresAt: string;
-  isActive: boolean;
-  sentBy: {
-    _id: string;
-    name: string;
-    email: string;
-  };
-  userStatuses: Array<{
-    userId: string;
-    userEmail: string;
-    seen: boolean;
-    seenAt?: string;
-    deleted: boolean;
-  }>;
-};
-
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -107,17 +85,6 @@ export default function AdminPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [blogsLoading, setBlogsLoading] = useState(true);
   const [selectedBlogRequests, setSelectedBlogRequests] = useState<string[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(true);
-  const [showNotificationForm, setShowNotificationForm] = useState(false);
-  const [notificationForm, setNotificationForm] = useState({
-    title: "",
-    content: "",
-    type: "general"
-  });
-  const [editImageFile, setEditImageFile] = useState<File | null>(null);
-  const [editImageUrl, setEditImageUrl] = useState<string>("");
-  const [editImageUrlInput, setEditImageUrlInput] = useState<string>("");
   const [usefulWebsites, setUsefulWebsites] = useState<any[]>([]);
   const [usefulWebsitesLoading, setUsefulWebsitesLoading] = useState(true);
   const [selectedUsefulWebsiteRequests, setSelectedUsefulWebsiteRequests] = useState<string[]>([]);
@@ -200,36 +167,6 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isAdmin) fetchUsefulWebsites();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      const data = await client.fetch(`*[_type == "notification"] | order(_createdAt desc) {
-        _id,
-        title,
-        content,
-        type,
-        _createdAt,
-        expiresAt,
-        isActive,
-        sentBy -> {
-          _id,
-          name,
-          email
-        },
-        userStatuses[] {
-          userId,
-          userEmail,
-          seen,
-          seenAt,
-          deleted,
-          deletedAt
-        }
-      }`);
-      setNotifications(data);
-      setNotificationsLoading(false);
-    };
-    if (isAdmin) fetchNotifications();
   }, [isAdmin]);
 
 
@@ -615,91 +552,6 @@ export default function AdminPage() {
     }
     setSelectedUsefulWebsiteRequests([]);
   };
-
-  const handleCreateNotification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.email) return;
-
-    const currentUser = users.find(u => u.email === user.email);
-    if (!currentUser) return;
-
-    try {
-      const response = await fetch("/api/notifications/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: notificationForm.title,
-          content: notificationForm.content,
-          type: notificationForm.type,
-          sentByUserId: currentUser._id,
-        }),
-      });
-
-      if (response.ok) {
-        setNotificationForm({ title: "", content: "", type: "general" });
-        setShowNotificationForm(false);
-        
-        // Refresh notifications
-        const data = await client.fetch(`*[_type == "notification"] | order(_createdAt desc) {
-          _id,
-          title,
-          content,
-          type,
-          _createdAt,
-          expiresAt,
-          isActive,
-          sentBy -> {
-            _id,
-            name,
-            email
-          },
-          userStatuses[] {
-            userId,
-            userEmail,
-            seen,
-            seenAt,
-            deleted,
-            deletedAt
-          }
-        }`);
-        setNotifications(data);
-        
-        alert("Notification sent successfully! All users will see a glowing red dot on their notification bell.");
-      } else {
-        alert("Failed to send notification");
-      }
-    } catch (error) {
-      console.error("Error creating notification:", error);
-      alert("Failed to send notification");
-    }
-  };
-
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  const handleDeleteNotification = async (notificationId: string) => {
-    if (deleteLoading || !notificationId) return;
-    setDeleteLoading(true);
-    try {
-      const response = await fetch("/api/notifications/delete", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationId }),
-      });
-
-      if (response.ok) {
-        setNotifications(notifications.filter(n => n._id !== notificationId));
-        alert("Notification deleted successfully!");
-      } else {
-        alert("Failed to delete notification");
-      }
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-      alert("Failed to delete notification");
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
 
 
   // Views and likes are now tracked automatically based on user interaction
@@ -1304,115 +1156,6 @@ export default function AdminPage() {
               </table>
               {filteredBlogs.length === 0 && (
                 <div className="text-gray-500 text-center py-8">No pending blogs.</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Notifications Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-blue-600">Notifications Management</h2>
-            <button
-              onClick={() => setShowNotificationForm(!showNotificationForm)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all"
-            >
-              {showNotificationForm ? "Cancel" : "Send New Notification"}
-            </button>
-          </div>
-          {showNotificationForm && (
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-              <h3 className="text-lg font-semibold mb-4">Send Notification to All Users</h3>
-              <form onSubmit={handleCreateNotification} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={notificationForm.title}
-                    onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Content</label>
-                  <textarea
-                    value={notificationForm.content}
-                    onChange={(e) => setNotificationForm({ ...notificationForm, content: e.target.value })}
-                    className="w-full p-2 border rounded h-24"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Type</label>
-                  <select
-                    value={notificationForm.type}
-                    onChange={(e) => setNotificationForm({ ...notificationForm, type: e.target.value })}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="general">General</option>
-                    <option value="important">Important</option>
-                    <option value="update">Update</option>
-                    <option value="announcement">Announcement</option>
-                  </select>
-                </div>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-all"
-                >
-                  Send Notification
-                </button>
-              </form>
-            </div>
-          )}
-          {notificationsLoading ? (
-            <div className="animate-pulse text-gray-500">Loading notifications...</div>
-          ) : (
-            <div className="space-y-4">
-              {notifications.map((notification) => {
-                const seenCount = notification.userStatuses.filter(s => s.seen).length;
-                const totalUsers = notification.userStatuses.length;
-                return (
-                  <div key={notification._id} className="bg-gray-50 p-4 rounded-lg shadow flex flex-col gap-2 hover:shadow-lg transition-all">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold">{notification.title}</h4>
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            notification.type === 'important' ? 'bg-red-100 text-red-800' :
-                            notification.type === 'update' ? 'bg-blue-100 text-blue-800' :
-                            notification.type === 'announcement' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {notification.type}
-                          </span>
-                          {!notification.isActive && (
-                            <span className="px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
-                              Inactive
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-600 mb-2">{notification.content}</p>
-                        <div className="text-sm text-gray-500 space-y-1">
-                          <p>Sent by: {notification.sentBy?.name || "Unknown"}</p>
-                          <p>Sent: {new Date(notification._createdAt).toLocaleString()}</p>
-                          <p>Expires: {new Date(notification.expiresAt).toLocaleString()}</p>
-                          <p>Seen by: {seenCount} of {totalUsers} users</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteNotification(notification._id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-all"
-                        disabled={deleteLoading || !notification._id}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {notifications.length === 0 && (
-                <p className="text-gray-500 text-center py-8">No notifications sent yet.</p>
               )}
             </div>
           )}

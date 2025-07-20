@@ -35,34 +35,6 @@ export type UsefulWebsite = {
   };
 };
 
-export type Notification = {
-  _id: string;
-  _type: "notification";
-  _createdAt: string;
-  _updatedAt: string;
-  _rev: string;
-  title?: string;
-  content?: string;
-  type?: "general" | "important" | "update" | "announcement";
-  sentBy?: {
-    _ref: string;
-    _type: "reference";
-    _weak?: boolean;
-    [internalGroqTypeReferenceTo]?: "author";
-  };
-  userStatuses?: Array<{
-    userId?: string;
-    userEmail?: string;
-    seen?: boolean;
-    seenAt?: string;
-    deleted?: boolean;
-    deletedAt?: string;
-    _key: string;
-  }>;
-  expiresAt?: string;
-  isActive?: boolean;
-};
-
 export type Blog = {
   _id: string;
   _type: "blog";
@@ -263,5 +235,5 @@ export type SanityAssetSourceData = {
   url?: string;
 };
 
-export type AllSanitySchemaTypes = UsefulWebsite | Notification | Blog | Playlist | AiTool | Author | Markdown | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
+export type AllSanitySchemaTypes = UsefulWebsite | Blog | Playlist | AiTool | Author | Markdown | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageHotspot | SanityImageCrop | SanityFileAsset | SanityImageAsset | SanityImageMetadata | Geopoint | Slug | SanityAssetSourceData;
 export declare const internalGroqTypeReferenceTo: unique symbol;

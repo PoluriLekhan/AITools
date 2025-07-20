@@ -4,8 +4,6 @@ import {
   AITOOL_BY_ID_QUERY,
   AITOOL_VIEWS_QUERY,
   SEARCH_ALL_QUERY,
-  NOTIFICATIONS_BY_USER_QUERY,
-  UNSEEN_NOTIFICATIONS_COUNT_QUERY,
   AITOOLS_BY_AUTHOR_QUERY,
   AUTHOR_BY_EMAIL_QUERY,
   ALL_BLOGS_QUERY,
@@ -53,31 +51,6 @@ export async function searchAll(searchTerm: string) {
   } catch (error) {
     console.error("Error searching:", error);
     return { success: false, error: "Failed to search" };
-  }
-}
-
-// Fetch notifications for a user
-export async function fetchUserNotifications(userEmail: string) {
-  try {
-    const notifications = await client.fetch(NOTIFICATIONS_BY_USER_QUERY);
-    return { success: true, data: notifications };
-  } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return { success: false, error: "Failed to fetch notifications" };
-  }
-}
-
-// Fetch unseen notifications count
-export async function fetchUnseenNotificationsCount(userEmail: string) {
-  try {
-    if (!userEmail || typeof userEmail !== "string" || userEmail.trim() === "") {
-      return { success: true, data: 0 };
-    }
-    const count = await client.withConfig({ useCdn: false }).fetch(UNSEEN_NOTIFICATIONS_COUNT_QUERY, { userEmail });
-    return { success: true, data: count };
-  } catch (error) {
-    console.error("Error fetching unseen notifications count:", error, userEmail);
-    return { success: false, error: "Failed to fetch unseen notifications count" };
   }
 }
 
