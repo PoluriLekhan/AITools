@@ -95,13 +95,6 @@ const UsefulWebsiteForm = () => {
       
       console.log("Creating useful website...");
       
-      const amountRaw = formData.get("amount");
-      const amount = Number(amountRaw);
-      if (!amountRaw || isNaN(amount) || amount <= 0) {
-        setErrors({ amount: "Amount is required and must be a positive number" });
-        return { error: "Amount is required and must be a positive number", status: "ERROR" };
-      }
-
       // Call the API to create the useful website
       const response = await fetch("/api/useful-websites/create", {
         method: "POST",
@@ -117,7 +110,6 @@ const UsefulWebsiteForm = () => {
           thumbnail: "/logo.png", // Send thumbnail to match backend schema
           pitch: formValues.pitch,
           authorId: user.uid,
-          amount, // send as number
         }),
       });
 
@@ -135,6 +127,20 @@ const UsefulWebsiteForm = () => {
       }
       console.log("Useful website creation result:", result);
 
+      if (result && result.orderId) {
+        toast({
+          title: "Success",
+          description: result.message || "Your useful website submission has been created successfully and is pending admin approval",
+        });
+        // Redirect to user's profile page with success parameter
+        if (user.email) {
+          router.push(`/user/${encodeURIComponent(user.email)}?newSubmission=true`);
+        } else {
+          router.push(`/useful-websites/${result.orderId}`);
+        }
+        return { status: "SUCCESS", _id: result.orderId, error: "" };
+      }
+
       if (!response.ok) {
         console.error("API Error:", result);
         toast({
@@ -150,41 +156,13 @@ const UsefulWebsiteForm = () => {
           title: "Success",
           description: result.message || "Your useful website submission has been created successfully and is pending admin approval",
         });
-
-        // Create a new useful website object for the profile update
-        const newWebsite = {
-          _id: result._id,
-          title: formValues.title,
-          _createdAt: new Date().toISOString(),
-          author: {
-            _id: user.uid,
-            name: user.displayName || "Unknown User",
-            image: user.photoURL || "",
-            bio: "",
-          },
-          views: 0,
-          description: formValues.description,
-          category: formValues.category,
-          image: formValues.websiteImage || "/logo.png",
-          websiteURL: formValues.websiteURL,
-          status: "pending",
-        };
-
-        // Dispatch custom event to notify profile page of new submission
-        const event = new CustomEvent('new-useful-website-submitted', {
-          detail: newWebsite
-        });
-        window.dispatchEvent(event);
-
-        // Redirect to user's profile page with success parameter
         if (user.email) {
           router.push(`/user/${encodeURIComponent(user.email)}?newSubmission=true`);
         } else {
           router.push(`/useful-websites/${result._id}`);
         }
-
         return { status: "SUCCESS", _id: result._id, error: "" };
-      } else {
+      } else if (result.error) {
         console.error("Failed to create useful website:", result.error);
         toast({
           title: "Error",
@@ -193,6 +171,8 @@ const UsefulWebsiteForm = () => {
         });
         return { error: result.error || "Failed to create useful website", status: "ERROR", _id: "" };
       }
+      // Only log if there is a real error
+      return { error: "Unknown error", status: "ERROR", _id: "" };
     } catch (error) {
       console.error("Form submission error:", error);
       
@@ -283,23 +263,6 @@ const UsefulWebsiteForm = () => {
           placeholder="https://example.com"
         />
         {errors.websiteURL && <p className="ai-tool-form_error">{errors.websiteURL}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="amount" className="ai-tool-form_label">
-          Amount
-        </label>
-        <Input
-          id="amount"
-          name="amount"
-          type="number"
-          className="ai-tool-form_input"
-          required
-          min="1"
-          step="1"
-          placeholder="Enter amount (e.g., 10)"
-        />
-        {errors.amount && <p className="ai-tool-form_error">{errors.amount}</p>}
       </div>
 
       <div>
