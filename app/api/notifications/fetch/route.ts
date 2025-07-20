@@ -9,10 +9,16 @@ export async function POST(request: NextRequest) {
     const { userEmail, type } = body;
     
     if (!userEmail || typeof userEmail !== 'string' || userEmail.trim() === '') {
-      return NextResponse.json(
-        { error: "User email is required in request body", received: body },
-        { status: 400 }
-      );
+      // Return default response instead of error
+      if (type === 'count') {
+        return NextResponse.json(0);
+      } else {
+        return NextResponse.json([]);
+      }
+    }
+    if (!type || (type !== 'count' && type !== 'all')) {
+      // Return default response for invalid type
+      return NextResponse.json([]);
     }
 
     let result;

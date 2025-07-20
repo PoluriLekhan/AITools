@@ -5,22 +5,27 @@ export async function POST(request: NextRequest) {
   let body;
   try {
     body = await request.json();
+    console.log("Received body in /api/check-user-like:", body);
   } catch (e) {
-    return NextResponse.json({ error: "Invalid or missing JSON body" }, { status: 400 });
+    return NextResponse.json({ hasLiked: false, likeData: null, error: "Invalid or missing JSON body" }, { status: 200 });
   }
 
   try {
-    const { aiToolId, userId } = body;
-    
-    if (!aiToolId || !userId) {
-      return NextResponse.json({ error: "AI Tool ID and User ID are required" }, { status: 400 });
+    // Accept both aiToolId/userId and toolId/userEmail for flexibility
+    const aiToolId = body.aiToolId || body.toolId;
+    const userId = body.userId;
+    const userEmail = body.userEmail;
+    if (!aiToolId || (!userId && !userEmail)) {
+      // If missing, return default response instead of error
+      return NextResponse.json({ hasLiked: false, likeData: null, error: "AI Tool ID and User ID or Email are required" }, { status: 200 });
     }
 
     // Check if user has already liked this tool
-    const existingLike = await client.fetch(
-      `*[_type == "userLike" && userId == $userId && aiToolId._ref == $aiToolId][0]`,
-      { userId, aiToolId }
-    );
+    const query = userId
+      ? `*[_type == "userLike" && userId == $userId && aiToolId._ref == $aiToolId][0]`
+      : `*[_type == "userLike" && userEmail == $userEmail && aiToolId._ref == $aiToolId][0]`;
+    const params = userId ? { userId, aiToolId } : { userEmail, aiToolId };
+    const existingLike = await client.fetch(query, params);
 
     return NextResponse.json({ 
       hasLiked: !!existingLike,
@@ -28,7 +33,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error checking user like:", error);
-    return NextResponse.json({ error: "Failed to check user like" }, { status: 500 });
+    return NextResponse.json({ hasLiked: false, likeData: null, error: "Failed to check user like" }, { status: 200 });
   }
 } 
 

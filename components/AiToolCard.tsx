@@ -35,7 +35,7 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
           const response = await fetch("/api/check-user-like", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ aiToolId: _id, userId: user.uid }),
+            body: JSON.stringify({ aiToolId: _id, userId: user.uid, userEmail: user.email }),
           });
           
           if (response.ok) {
