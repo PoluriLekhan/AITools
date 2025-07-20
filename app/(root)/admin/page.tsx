@@ -127,6 +127,50 @@ export default function AdminPage() {
   // Remove activeTab, Tabs, and Card usage
   // Restore original section stacking and layout
 
+  const fetchUsers = async () => {
+    const data = await client.fetch(ALL_AUTHORS_QUERY);
+    setUsers(data);
+    setUsersLoading(false);
+  };
+
+  const fetchAiTools = async () => {
+    const data = await client.fetch(ALL_AITOOLS_ADMIN_QUERY);
+    setAiTools(data);
+    setAiToolsLoading(false);
+  };
+
+  const fetchBlogs = async () => {
+    const data = await client.fetch(`*[_type == "blog"]{ _id, title, content, coverImage, category, accessType, status, aiToolLink, author->{name} }`);
+    setBlogs(data);
+    setBlogsLoading(false);
+  };
+
+  const fetchUsefulWebsites = async () => {
+    const data = await client.fetch(`*[_type == "usefulWebsite"] | order(_createdAt desc) {
+      _id,
+      title,
+      description,
+      category,
+      websiteURL,
+      websiteImage,
+      pitch,
+      status,
+      views,
+      likes,
+
+      autoIncrementViews,
+      autoIncrementLikes,
+      author -> {
+        _id,
+        name,
+        email
+      }
+    }`);
+    setUsefulWebsites(data);
+    setUsefulWebsitesLoading(false);
+  };
+
+
   useEffect(() => {
     const checkAdmin = async () => {
       if (user?.email) {
@@ -143,30 +187,19 @@ export default function AdminPage() {
   }, [checked, isAdmin, router]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const data = await client.fetch(ALL_AUTHORS_QUERY);
-      setUsers(data);
-      setUsersLoading(false);
-    };
     if (isAdmin) fetchUsers();
   }, [isAdmin]);
 
   useEffect(() => {
-    const fetchAiTools = async () => {
-      const data = await client.fetch(ALL_AITOOLS_ADMIN_QUERY);
-      setAiTools(data);
-      setAiToolsLoading(false);
-    };
     if (isAdmin) fetchAiTools();
   }, [isAdmin]);
 
   useEffect(() => {
-    const fetchBlogs = async () => {
-      const data = await client.fetch(`*[_type == "blog"]{ _id, title, content, coverImage, category, accessType, status, aiToolLink, author->{name} }`);
-      setBlogs(data);
-      setBlogsLoading(false);
-    };
     if (isAdmin) fetchBlogs();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) fetchUsefulWebsites();
   }, [isAdmin]);
 
   useEffect(() => {
@@ -198,35 +231,6 @@ export default function AdminPage() {
     };
     if (isAdmin) fetchNotifications();
   }, [isAdmin]);
-
-  useEffect(() => {
-    const fetchUsefulWebsites = async () => {
-      const data = await client.fetch(`*[_type == "usefulWebsite"] | order(_createdAt desc) {
-        _id,
-        title,
-        description,
-        category,
-        websiteURL,
-        websiteImage,
-        pitch,
-        status,
-        views,
-        likes,
-
-        autoIncrementViews,
-        autoIncrementLikes,
-        author -> {
-          _id,
-          name,
-          email
-        }
-      }`);
-      setUsefulWebsites(data);
-      setUsefulWebsitesLoading(false);
-    };
-    if (isAdmin) fetchUsefulWebsites();
-  }, [isAdmin]);
-
 
 
   const handleToggleAdmin = async (userId: string, current: boolean) => {

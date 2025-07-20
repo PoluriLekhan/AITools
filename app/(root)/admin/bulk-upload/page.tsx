@@ -28,7 +28,7 @@ export default function BulkUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const selectAllRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   React.useEffect(() => {
     const checkAdmin = async () => {
@@ -89,14 +89,14 @@ export default function BulkUploadPage() {
   };
 
   const handleApproveSelected = async () => {
-    if (loading || !user?.email || selectedRows.length === 0) return;
-    setLoading(true);
+    if (bulkLoading || !user?.email || selectedRows.length === 0) return;
+    setBulkLoading(true);
     setResults([]);
     try {
       const selected = csvRows.filter((row) => selectedRows.includes(row._row));
       if (selected.length === 0) {
         toast({ title: "No rows selected", description: "Please select at least one row to upload.", variant: "destructive" });
-        setLoading(false);
+        setBulkLoading(false);
         return;
       }
       // Get Firebase token for auth
@@ -119,7 +119,7 @@ export default function BulkUploadPage() {
     } catch (err) {
       toast({ title: "Error", description: "Failed to upload tools", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setBulkLoading(false);
     }
   };
 
@@ -150,8 +150,8 @@ export default function BulkUploadPage() {
           onChange={handleFileChange}
           className="block w-full mt-2 mb-2"
         />
-        <Button onClick={handleApproveSelected} disabled={loading || selectedRows.length === 0} className="mt-2 w-full">
-          {loading ? "Uploading..." : "Approve Selected"}
+        <Button onClick={handleApproveSelected} disabled={bulkLoading || selectedRows.length === 0} className="mt-2 w-full">
+          {bulkLoading ? "Uploading..." : "Approve Selected"}
         </Button>
       </Card>
       {csvRows.length > 0 && (
