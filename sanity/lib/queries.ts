@@ -16,7 +16,17 @@ export const AITOOLS_QUERY =
   types,
   toolWebsiteURL,
   status,
+  autoIncrementViews,
+  autoIncrementLikes,
 }`);
+
+
+
+export const TOTAL_TOOLS_COUNT_QUERY =
+  defineQuery(`count(*[_type == "aiTool" && status == "approved"])`);
+
+export const TOTAL_WEBSITES_COUNT_QUERY =
+  defineQuery(`count(*[_type == "usefulWebsite" && status == "approved"])`);
 
 export const SEARCH_AITOOLS_QUERY =
   defineQuery(`*[_type == "aiTool" && status == "approved" && (title match $search || description match $search || category match $search || author->name match $search)] | order(_createdAt desc) {
@@ -171,6 +181,43 @@ export const AITOOLS_BY_AUTHOR_QUERY =
   status,
 }`);
 
+export const USEFUL_WEBSITES_QUERY =
+  defineQuery(`*[_type == "usefulWebsite" && status == "approved"] | order(_createdAt desc) {
+  _id, 
+  title, 
+  _createdAt,
+  author -> {
+    _id, name, image, bio
+  }, 
+  views,
+  likes,
+  description,
+  category,
+  "image": websiteImage,
+  websiteURL,
+  status,
+  autoIncrementViews,
+  autoIncrementLikes,
+}`);
+
+
+
+export const USEFUL_WEBSITES_BY_AUTHOR_QUERY =
+  defineQuery(`*[_type == "usefulWebsite" && author._ref == $id] | order(_createdAt desc) {
+  _id, 
+  title, 
+  _createdAt,
+  author -> {
+    _id, name, image, bio
+  }, 
+  views,
+  description,
+  category,
+  "image": websiteImage,
+  websiteURL,
+  status,
+}`);
+
 export const PLAYLIST_BY_SLUG_QUERY =
   defineQuery(`*[_type == "playlist" && slug.current == $slug][0]{
   _id,
@@ -231,6 +278,10 @@ export const ALL_AITOOLS_ADMIN_QUERY = defineQuery(`
   toolWebsiteURL,
   status,
   pitch,
+  isTrending,
+  trendingOrder,
+  autoIncrementViews,
+  autoIncrementLikes,
 }
 `);
 

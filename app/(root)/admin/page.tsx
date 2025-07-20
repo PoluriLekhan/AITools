@@ -45,6 +45,11 @@ type AiTool = {
   pitch: string;
   types: string[];
   status: string;
+  views?: number;
+  likes?: number;
+
+  autoIncrementViews?: boolean;
+  autoIncrementLikes?: boolean;
   author?: { name: string };
 };
 
@@ -113,6 +118,11 @@ export default function AdminPage() {
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImageUrl, setEditImageUrl] = useState<string>("");
   const [editImageUrlInput, setEditImageUrlInput] = useState<string>("");
+  const [usefulWebsites, setUsefulWebsites] = useState<any[]>([]);
+  const [usefulWebsitesLoading, setUsefulWebsitesLoading] = useState(true);
+  const [selectedUsefulWebsiteRequests, setSelectedUsefulWebsiteRequests] = useState<string[]>([]);
+  const [editUsefulWebsite, setEditUsefulWebsite] = useState<any | null>(null);
+  const [editUsefulWebsiteForm, setEditUsefulWebsiteForm] = useState<Partial<any>>({});
   const isSuperAdmin = users.find(u => u.email === user?.email)?.role === "super-admin";
   // Remove activeTab, Tabs, and Card usage
   // Restore original section stacking and layout
@@ -187,6 +197,34 @@ export default function AdminPage() {
       setNotificationsLoading(false);
     };
     if (isAdmin) fetchNotifications();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    const fetchUsefulWebsites = async () => {
+      const data = await client.fetch(`*[_type == "usefulWebsite"] | order(_createdAt desc) {
+        _id,
+        title,
+        description,
+        category,
+        websiteURL,
+        websiteImage,
+        pitch,
+        status,
+        views,
+        likes,
+
+        autoIncrementViews,
+        autoIncrementLikes,
+        author -> {
+          _id,
+          name,
+          email
+        }
+      }`);
+      setUsefulWebsites(data);
+      setUsefulWebsitesLoading(false);
+    };
+    if (isAdmin) fetchUsefulWebsites();
   }, [isAdmin]);
 
 
@@ -399,6 +437,181 @@ export default function AdminPage() {
     setSelectedBlogRequests([]);
   };
 
+  const handleApproveUsefulWebsite = async (websiteId: string) => {
+    try {
+      const response = await fetch("/api/admin/manage-tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toolId: websiteId,
+          action: "updateStatus",
+          status: "approved",
+          documentType: "usefulWebsite",
+          adminEmail: user?.email
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setUsefulWebsites(usefulWebsites => usefulWebsites.map(w => w._id === websiteId ? { ...w, status: "approved" } : w));
+          alert("Useful website approved successfully");
+        } else {
+          alert("Failed to approve useful website: " + (result.error || "Unknown error"));
+        }
+      } else {
+        const errorData = await response.json();
+        alert("Failed to approve useful website: " + (errorData.error || "Server error"));
+      }
+    } catch (error) {
+      console.error("Error approving useful website:", error);
+      alert("Failed to approve useful website");
+    }
+  };
+
+  const handleRejectUsefulWebsite = async (websiteId: string) => {
+    try {
+      const response = await fetch("/api/admin/manage-tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toolId: websiteId,
+          action: "updateStatus",
+          status: "rejected",
+          documentType: "usefulWebsite",
+          adminEmail: user?.email
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setUsefulWebsites(usefulWebsites => usefulWebsites.map(w => w._id === websiteId ? { ...w, status: "rejected" } : w));
+          alert("Useful website rejected successfully");
+        } else {
+          alert("Failed to reject useful website: " + (result.error || "Unknown error"));
+        }
+      } else {
+        const errorData = await response.json();
+        alert("Failed to reject useful website: " + (errorData.error || "Server error"));
+      }
+    } catch (error) {
+      console.error("Error rejecting useful website:", error);
+      alert("Failed to reject useful website");
+    }
+  };
+
+  const handleDeleteUsefulWebsite = async (websiteId: string) => {
+    if (!window.confirm("Are you sure you want to delete this useful website? This cannot be undone.")) return;
+    
+    try {
+      const response = await fetch("/api/admin/manage-tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toolId: websiteId,
+          action: "delete",
+          documentType: "usefulWebsite",
+          adminEmail: user?.email
+        }),
+      });
+
+      if (response.ok) {
+        setUsefulWebsites(usefulWebsites => usefulWebsites.filter(w => w._id !== websiteId));
+        alert("Useful website deleted successfully.");
+      } else {
+        alert("Failed to delete useful website.");
+      }
+    } catch (error) {
+      console.error("Error deleting useful website:", error);
+      alert("Failed to delete useful website.");
+    }
+  };
+
+  const handleEditUsefulWebsite = (website: any) => {
+    setEditUsefulWebsite(website);
+    setEditUsefulWebsiteForm({ ...website });
+  };
+
+  const handleEditUsefulWebsiteFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setEditUsefulWebsiteForm({ ...editUsefulWebsiteForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditUsefulWebsiteFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUsefulWebsiteForm || !editUsefulWebsite) return;
+
+    try {
+      const response = await fetch("/api/admin/manage-tool", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toolId: editUsefulWebsite._id,
+          action: "update",
+          documentType: "usefulWebsite",
+          updates: {
+            title: editUsefulWebsiteForm.title || "",
+            description: editUsefulWebsiteForm.description || "",
+            category: editUsefulWebsiteForm.category || "",
+            websiteURL: editUsefulWebsiteForm.websiteURL || "",
+            pitch: editUsefulWebsiteForm.pitch || "",
+          },
+          adminEmail: user?.email
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setUsefulWebsites(websites => websites.map(website => 
+          website._id === editUsefulWebsite._id 
+            ? { ...website, ...editUsefulWebsiteForm }
+            : website
+        ));
+        setEditUsefulWebsite(null);
+        setEditUsefulWebsiteForm({});
+        alert("Useful Website updated successfully!");
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to update Useful Website.");
+      }
+    } catch (error) {
+      console.error("Error updating Useful Website:", error);
+      alert("Failed to update Useful Website.");
+    }
+  };
+
+  const handleSelectUsefulWebsiteRequest = (websiteId: string) => {
+    setSelectedUsefulWebsiteRequests(prev => 
+      prev.includes(websiteId) 
+        ? prev.filter(id => id !== websiteId)
+        : [...prev, websiteId]
+    );
+  };
+
+  const handleBulkApproveUsefulWebsites = async () => {
+    if (selectedUsefulWebsiteRequests.length === 0) {
+      alert("Please select useful websites to approve.");
+      return;
+    }
+    for (const websiteId of selectedUsefulWebsiteRequests) {
+      await handleApproveUsefulWebsite(websiteId);
+    }
+    setSelectedUsefulWebsiteRequests([]);
+  };
+
+  const handleBulkRejectUsefulWebsites = async () => {
+    if (selectedUsefulWebsiteRequests.length === 0) {
+      alert("Please select useful websites to reject.");
+      return;
+    }
+    for (const websiteId of selectedUsefulWebsiteRequests) {
+      await handleRejectUsefulWebsite(websiteId);
+    }
+    setSelectedUsefulWebsiteRequests([]);
+  };
+
   const handleCreateNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.email) return;
@@ -480,6 +693,11 @@ export default function AdminPage() {
   };
 
 
+
+  // Views and likes are now tracked automatically based on user interaction
+  // No manual controls needed in admin panel
+
+
   const statusBadge = (status: string) => {
     let color = "bg-gray-400";
     if (status === "pending") color = "bg-yellow-400";
@@ -501,6 +719,22 @@ export default function AdminPage() {
         >
           Bulk Upload AI Tools (CSV)
         </a>
+        <button
+          onClick={() => {
+            setAiToolsLoading(true);
+            setUsefulWebsitesLoading(true);
+            setBlogsLoading(true);
+            setUsersLoading(true);
+            // Refetch all data
+            fetchAiTools();
+            fetchUsefulWebsites();
+            fetchBlogs();
+            fetchUsers();
+          }}
+          className="inline-block px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 text-center w-full sm:w-auto"
+        >
+          Refresh All Data
+        </button>
       </div>
       {/* Remove Tabs */}
       <div className="space-y-6">
@@ -555,7 +789,7 @@ export default function AdminPage() {
             <div className="animate-pulse text-gray-500">Loading AI Tools...</div>
           ) : (
             <>
-              <div className="flex items-center mb-2">
+              <div className="flex items-center mb-4 gap-2">
                 <input
                   type="checkbox"
                   id="select-all-pending"
@@ -580,41 +814,66 @@ export default function AdminPage() {
                 />
                 <label htmlFor="select-all-pending" className="text-sm font-medium">Select All Pending</label>
                 <button
-                  className="ml-4 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm"
                   disabled={selectedRequests.length === 0}
                   onClick={handleBulkApprove}
                 >
-                  Bulk Approve Selected
+                  Bulk Approve ({selectedRequests.length})
                 </button>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {filteredAiTools.filter(tool => tool.status === 'pending').map(tool => (
-                  <div key={tool._id} className="bg-gray-50 rounded-lg shadow p-4 flex flex-col gap-2 hover:shadow-lg transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="font-semibold text-blue-700 line-clamp-1">{tool.title}</div>
-                      {statusBadge(tool.status)}
-                    </div>
-                    <div className="text-gray-600 line-clamp-2 mb-2">{tool.description}</div>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      {Array.from(new Set(tool.types))?.map(type => (
-                        <span key={type} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{type}</span>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedRequests.includes(tool._id)}
-                        onChange={() => handleSelectRequest(tool._id)}
-                        className="mr-2"
-                      />
-                      <button className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all" onClick={() => handleApproveAiTool(tool._id)}>Approve</button>
-                      <button className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all" onClick={() => handleRejectAiTool(tool._id)}>Reject</button>
-                      <button className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all" onClick={() => handleEditAiTool(tool)}>Edit</button>
-                      <button className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all" onClick={() => handleDeleteAiTool(tool._id)}>Delete</button>
-                    </div>
-                  </div>
-                ))}
-                {filteredAiTools.filter(tool => tool.status === 'pending').length === 0 && <div className="text-gray-500 col-span-full text-center py-8">No pending AI Tools.</div>}
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="p-3 font-medium">Select</th>
+                      <th className="p-3 font-medium">Title</th>
+                      <th className="p-3 font-medium">Category</th>
+                      <th className="p-3 font-medium">Author</th>
+                      <th className="p-3 font-medium">Status</th>
+                      <th className="p-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAiTools.filter(tool => tool.status === 'pending').map(tool => (
+                      <tr key={tool._id} className="border-t hover:bg-blue-50 transition-colors">
+                        <td className="p-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedRequests.includes(tool._id)}
+                            onChange={() => handleSelectRequest(tool._id)}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <div className="font-semibold text-blue-700">{tool.title}</div>
+                          <div className="text-gray-600 text-xs line-clamp-2">{tool.description}</div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-1">
+                            {Array.from(new Set(tool.types))?.slice(0, 2).map(type => (
+                              <span key={type} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{type}</span>
+                            ))}
+                            {tool.types && tool.types.length > 2 && (
+                              <span className="text-gray-500 text-xs">+{tool.types.length - 2}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-sm">{tool.author?.name || "Unknown"}</td>
+                        <td className="p-3">{statusBadge(tool.status)}</td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-1">
+                            <button className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all text-xs" onClick={() => handleApproveAiTool(tool._id)}>Approve</button>
+                            <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-xs" onClick={() => handleRejectAiTool(tool._id)}>Reject</button>
+                            <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditAiTool(tool)}>Edit</button>
+                            <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteAiTool(tool._id)}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredAiTools.filter(tool => tool.status === 'pending').length === 0 && (
+                  <div className="text-gray-500 text-center py-8">No pending AI Tools.</div>
+                )}
               </div>
             </>
           )}
@@ -624,38 +883,56 @@ export default function AdminPage() {
           {aiToolsLoading ? (
             <div className="animate-pulse text-gray-500">Loading AI Tools...</div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {filteredAiTools.filter(tool => tool.status === 'approved').map(tool => (
-                <div key={tool._id} className="bg-gray-50 rounded-lg shadow p-4 flex flex-col gap-2 hover:shadow-lg transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-blue-700 line-clamp-1">{tool.title}</div>
-                    {statusBadge(tool.status)}
-                  </div>
-                  {/* Tool Image or Placeholder */}
-                  <div className="flex justify-center my-2">
-                    <img
-                      src={tool.toolImage ? tool.toolImage : "/logo.png"}
-                      alt={tool.title + " image"}
-                      className="w-24 h-24 object-cover rounded border"
-                      onError={e => { e.currentTarget.src = "/logo.png"; }}
-                    />
-                  </div>
-                  <div className="text-gray-600 line-clamp-2 mb-2">{tool.description}</div>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {Array.from(new Set(tool.types))?.map(type => (
-                      <span key={type} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">{type}</span>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button className="px-3 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all" onClick={() => handleEditAiTool(tool)}>Edit</button>
-                    <button className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all" onClick={() => handleDeleteAiTool(tool._id)}>Delete</button>
-                  </div>
-                </div>
-              ))}
-              {filteredAiTools.filter(tool => tool.status === 'approved').length === 0 && <div className="text-gray-500 col-span-full text-center py-8">No approved AI Tools.</div>}
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-3 font-medium">Title</th>
+                    <th className="p-3 font-medium">Category</th>
+                    <th className="p-3 font-medium">Author</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAiTools.filter(tool => tool.status === 'approved').map(tool => (
+                    <tr key={tool._id} className="border-t hover:bg-green-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-semibold text-green-700">{tool.title}</div>
+                        <div className="text-gray-600 text-xs line-clamp-2">{tool.description}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {Array.from(new Set(tool.types))?.slice(0, 2).map(type => (
+                            <span key={type} className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">{type}</span>
+                          ))}
+                          {tool.types && tool.types.length > 2 && (
+                            <span className="text-gray-500 text-xs">+{tool.types.length - 2}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm">{tool.author?.name || "Unknown"}</td>
+                      <td className="p-3">{statusBadge(tool.status)}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          <button className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all text-xs" onClick={() => handleRejectAiTool(tool._id)}>Reject</button>
+                          <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditAiTool(tool)}>Edit</button>
+                          <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteAiTool(tool._id)}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredAiTools.filter(tool => tool.status === 'approved').length === 0 && (
+                <div className="text-gray-500 text-center py-8">No approved AI Tools.</div>
+              )}
             </div>
           )}
         </div>
+
+
+
         {/* Edit AI Tool Modal */}
         {editAiTool && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -765,28 +1042,261 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Edit Useful Website Modal */}
+        {editUsefulWebsite && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded shadow w-full max-w-lg">
+              <h3 className="text-xl font-bold mb-4">Edit Useful Website</h3>
+              <form onSubmit={handleEditUsefulWebsiteFormSubmit}>
+                <input
+                  className="w-full p-2 mb-2 border rounded"
+                  name="title"
+                  value={editUsefulWebsiteForm?.title || ""}
+                  onChange={handleEditUsefulWebsiteFormChange}
+                  placeholder="Website Title"
+                  required
+                />
+                <textarea
+                  className="w-full p-2 mb-2 border rounded"
+                  name="description"
+                  value={editUsefulWebsiteForm?.description || ""}
+                  onChange={handleEditUsefulWebsiteFormChange}
+                  placeholder="Description"
+                  required
+                  rows={3}
+                />
+                <input
+                  className="w-full p-2 mb-2 border rounded"
+                  name="category"
+                  value={editUsefulWebsiteForm?.category || ""}
+                  onChange={handleEditUsefulWebsiteFormChange}
+                  placeholder="Category"
+                  required
+                />
+                <input
+                  className="w-full p-2 mb-2 border rounded"
+                  name="websiteURL"
+                  value={editUsefulWebsiteForm?.websiteURL || ""}
+                  onChange={handleEditUsefulWebsiteFormChange}
+                  placeholder="Website URL"
+                  required
+                />
+                <textarea
+                  className="w-full p-2 mb-2 border rounded"
+                  name="pitch"
+                  value={editUsefulWebsiteForm?.pitch || ""}
+                  onChange={handleEditUsefulWebsiteFormChange}
+                  placeholder="Why is this website useful?"
+                  rows={3}
+                />
+                <div className="flex gap-2 mt-4">
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                  <button type="button" className="px-4 py-2 bg-gray-400 text-white rounded" onClick={() => setEditUsefulWebsite(null)}>Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Pending Useful Websites Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-yellow-600">Pending Useful Websites</h2>
+          {usefulWebsitesLoading ? (
+            <div className="animate-pulse text-gray-500">Loading useful websites...</div>
+          ) : (
+            <>
+              <div className="flex items-center mb-4 gap-2">
+                <input
+                  type="text"
+                  placeholder="Search useful websites..."
+                  className="flex-1 p-2 border rounded"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <button
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-all text-sm"
+                  onClick={handleBulkApproveUsefulWebsites}
+                >
+                  Bulk Approve ({selectedUsefulWebsiteRequests.length})
+                </button>
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-all text-sm"
+                  onClick={handleBulkRejectUsefulWebsites}
+                >
+                  Bulk Reject ({selectedUsefulWebsiteRequests.length})
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="p-3 font-medium">Select</th>
+                      <th className="p-3 font-medium">Title</th>
+                      <th className="p-3 font-medium">Category</th>
+                      <th className="p-3 font-medium">URL</th>
+                      <th className="p-3 font-medium">Author</th>
+                      <th className="p-3 font-medium">Status</th>
+                      <th className="p-3 font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usefulWebsites
+                      .filter(website => 
+                        website.status === 'pending' &&
+                        (website.title.toLowerCase().includes(search.toLowerCase()) ||
+                        website.description.toLowerCase().includes(search.toLowerCase()) ||
+                        website.category.toLowerCase().includes(search.toLowerCase()))
+                      )
+                      .map(website => (
+                        <tr key={website._id} className="border-t hover:bg-yellow-50 transition-colors">
+                          <td className="p-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsefulWebsiteRequests.includes(website._id)}
+                              onChange={() => handleSelectUsefulWebsiteRequest(website._id)}
+                            />
+                          </td>
+                          <td className="p-3">
+                            <div className="font-semibold text-yellow-700">{website.title}</div>
+                            <div className="text-gray-600 text-xs line-clamp-2">{website.description?.slice(0, 100)}...</div>
+                          </td>
+                          <td className="p-3 text-sm">{website.category}</td>
+                          <td className="p-3">
+                            <a href={website.websiteURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate block max-w-32">
+                              {website.websiteURL}
+                            </a>
+                          </td>
+                          <td className="p-3 text-sm">{website.author?.name || "Unknown"}</td>
+                          <td className="p-3">{statusBadge(website.status)}</td>
+                          <td className="p-3">
+                            <div className="flex flex-wrap gap-1">
+                              <button className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all text-xs" onClick={() => handleApproveUsefulWebsite(website._id)}>Approve</button>
+                              <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-xs" onClick={() => handleRejectUsefulWebsite(website._id)}>Reject</button>
+                              <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditUsefulWebsite(website)}>Edit</button>
+                              <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteUsefulWebsite(website._id)}>Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                {usefulWebsites.filter(website => 
+                  website.status === 'pending' &&
+                  (website.title.toLowerCase().includes(search.toLowerCase()) ||
+                  website.description.toLowerCase().includes(search.toLowerCase()) ||
+                  website.category.toLowerCase().includes(search.toLowerCase()))
+                ).length === 0 && (
+                  <div className="text-gray-500 text-center py-8">No pending useful websites.</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Approved Useful Websites Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4 text-green-600">Approved Useful Websites</h2>
+          {usefulWebsitesLoading ? (
+            <div className="animate-pulse text-gray-500">Loading useful websites...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-3 font-medium">Title</th>
+                    <th className="p-3 font-medium">Category</th>
+                    <th className="p-3 font-medium">URL</th>
+                    <th className="p-3 font-medium">Author</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usefulWebsites
+                    .filter(website => 
+                      website.status === 'approved' &&
+                      (website.title.toLowerCase().includes(search.toLowerCase()) ||
+                      website.description.toLowerCase().includes(search.toLowerCase()) ||
+                      website.category.toLowerCase().includes(search.toLowerCase()))
+                    )
+                    .map(website => (
+                      <tr key={website._id} className="border-t hover:bg-green-50 transition-colors">
+                        <td className="p-3">
+                          <div className="font-semibold text-green-700">{website.title}</div>
+                          <div className="text-gray-600 text-xs line-clamp-2">{website.description?.slice(0, 100)}...</div>
+                        </td>
+                        <td className="p-3 text-sm">{website.category}</td>
+                        <td className="p-3">
+                          <a href={website.websiteURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate block max-w-32">
+                            {website.websiteURL}
+                          </a>
+                        </td>
+                        <td className="p-3 text-sm">{website.author?.name || "Unknown"}</td>
+                        <td className="p-3">{statusBadge(website.status)}</td>
+                        <td className="p-3">
+                          <div className="flex flex-wrap gap-1">
+                            <button className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all text-xs" onClick={() => handleRejectUsefulWebsite(website._id)}>Reject</button>
+                            <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditUsefulWebsite(website)}>Edit</button>
+                            <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteUsefulWebsite(website._id)}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+              {usefulWebsites.filter(website => 
+                website.status === 'approved' &&
+                (website.title.toLowerCase().includes(search.toLowerCase()) ||
+                website.description.toLowerCase().includes(search.toLowerCase()) ||
+                website.category.toLowerCase().includes(search.toLowerCase()))
+              ).length === 0 && (
+                <div className="text-gray-500 text-center py-8">No approved useful websites.</div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Blogs Section */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4 text-blue-600">Pending Blogs</h2>
           {blogsLoading ? (
             <div className="animate-pulse text-gray-500">Loading blogs...</div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {filteredBlogs.map(blog => (
-                <div key={blog._id} className="bg-gray-50 rounded-lg shadow p-4 flex flex-col gap-2 hover:shadow-lg transition-all">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-blue-700 line-clamp-1">{blog.title}</div>
-                    {statusBadge(blog.status)}
-                  </div>
-                  <div className="text-gray-600 line-clamp-2 mb-2">{blog.content?.slice(0, 100)}...</div>
-                  <div className="flex gap-2 mt-2">
-                    <button className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all" onClick={() => handleApproveBlog(blog._id)}>Approve</button>
-                    <button className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all" onClick={() => handleRejectBlog(blog._id)}>Reject</button>
-                    <button className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all" onClick={() => handleDeleteBlog(blog._id)}>Delete</button>
-                  </div>
-                </div>
-              ))}
-              {filteredBlogs.length === 0 && <div className="text-gray-500 col-span-full text-center py-8">No pending blogs.</div>}
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-3 font-medium">Title</th>
+                    <th className="p-3 font-medium">Category</th>
+                    <th className="p-3 font-medium">Author</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredBlogs.map(blog => (
+                    <tr key={blog._id} className="border-t hover:bg-blue-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-semibold text-blue-700">{blog.title}</div>
+                        <div className="text-gray-600 text-xs line-clamp-2">{blog.content?.slice(0, 100)}...</div>
+                      </td>
+                      <td className="p-3 text-sm">{blog.category}</td>
+                      <td className="p-3 text-sm">{blog.author?.name || "Unknown"}</td>
+                      <td className="p-3">{statusBadge(blog.status)}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          <button className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all text-xs" onClick={() => handleApproveBlog(blog._id)}>Approve</button>
+                          <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-xs" onClick={() => handleRejectBlog(blog._id)}>Reject</button>
+                          <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteBlog(blog._id)}>Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredBlogs.length === 0 && (
+                <div className="text-gray-500 text-center py-8">No pending blogs.</div>
+              )}
             </div>
           )}
         </div>

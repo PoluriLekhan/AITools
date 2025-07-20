@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchAuthorByEmail, fetchUnseenNotificationsCount, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink } from "lucide-react";
+import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 const Navbar = () => {
@@ -22,6 +22,7 @@ const Navbar = () => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showAboutDropdownMobile, setShowAboutDropdownMobile] = useState(false);
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
@@ -131,11 +132,19 @@ const Navbar = () => {
     badge?: number;
     isExternal?: boolean;
   }
+  const portfolioSections = [
+    { label: 'Home', anchor: 'home' },
+    { label: 'About', anchor: 'about' },
+    { label: 'Work', anchor: 'work' },
+    { label: 'Contact', anchor: 'contact' },
+  ];
+
   const navLinks: NavLink[] = [
     { href: "/", label: "Home", icon: <Home className="w-5 h-5" /> },
+    { href: "/useful-websites", label: "Useful Websites", icon: <Globe className="w-5 h-5" /> },
     { href: "/pricing", label: "Pricing", icon: <span className="w-5 h-5">💲</span> },
-    { href: "https://portifolio-steel-psi-95.vercel.app/", label: "About", icon: <ExternalLink className="w-5 h-5" />, isExternal: true },
-    ...(user ? [{ href: "/ai-tool/create", label: "Create", icon: <Plus className="w-5 h-5" /> }] : []),
+    { href: "/Portifolio/index.html", label: "About", icon: <ExternalLink className="w-5 h-5" />, isExternal: true },
+    ...(user ? [{ href: "/submit", label: "Submit", icon: <Plus className="w-5 h-5" /> }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: <Shield className="w-5 h-5" />, badge: pendingCount }] : []),
   ];
 
@@ -325,28 +334,15 @@ const Navbar = () => {
           {/* Navigation Links */}
           <div className="flex-1 overflow-y-auto">
             <nav className="p-4 space-y-1">
-              {navLinks.map((link, index) => (
-                <button
+              {navLinks.map((link) => (
+                <Link
                   key={link.href}
-                  onClick={() => link.isExternal ? handleExternalLink(link.href) : handleNavClick(link.href)}
-                  className="relative w-full flex items-center space-x-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-xl transition-all duration-200 group"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  href={link.href}
+                  className="block px-4 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-200 font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  <div className="flex-shrink-0 w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors duration-200">
-                    {link.icon}
-                  </div>
-                  <span className="font-medium text-gray-900 group-hover:text-gray-700 transition-colors duration-200">
-                    {link.label}
-                  </span>
-                  {link.isExternal && (
-                    <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors duration-200" />
-                  )}
-                  {link.badge !== undefined && link.badge > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-semibold animate-pulse">
-                      {link.badge}
-                    </span>
-                  )}
-                </button>
+                  {link.label}
+                </Link>
               ))}
             </nav>
 

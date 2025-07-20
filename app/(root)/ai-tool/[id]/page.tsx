@@ -62,21 +62,28 @@ const Page = async ({ params }: { params: { id: string } }) => {
       </section>
 
       <section className="section_container">
-        <div
-          className="prose max-w-4xl mx-auto my-8"
-          dangerouslySetInnerHTML={{ __html: parsedContent }}
-        />
-        <div className="flex justify-center mt-8">
-          <a
-            href={post.toolWebsiteURL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-          >
-            <ExternalLinkIcon className="size-5" />
-            Visit Tool
-          </a>
+        <div className="max-w-4xl mx-auto my-8">
+          <div
+            className="prose max-w-none mb-8"
+            dangerouslySetInnerHTML={{ __html: parsedContent }}
+          />
+          
+          {/* Website URL */}
+          {post.toolWebsiteURL && (
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">Website URL</h3>
+              <a
+                href={post.toolWebsiteURL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline break-all text-lg"
+              >
+                {post.toolWebsiteURL}
+              </a>
+            </div>
+          )}
         </div>
+        
         <div className="mt-8">
           <View id={post._id} />
         </div>

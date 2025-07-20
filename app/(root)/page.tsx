@@ -6,8 +6,9 @@ import SearchForm from "@/components/SearchForm";
 import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
 import BlogCard from "@/components/BlogCard";
 import { client } from "@/sanity/lib/client";
-import { AITOOLS_QUERY, SEARCH_AITOOLS_QUERY, SEARCH_ALL_QUERY, ALL_BLOGS_QUERY } from "@/sanity/lib/queries";
+import { AITOOLS_QUERY, SEARCH_AITOOLS_QUERY, SEARCH_ALL_QUERY, ALL_BLOGS_QUERY, TOTAL_TOOLS_COUNT_QUERY, TOTAL_WEBSITES_COUNT_QUERY } from "@/sanity/lib/queries";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 export default function Home({ searchParams }: { searchParams: { query?: string } }) {
   const query = searchParams?.query;
@@ -15,6 +16,9 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
   const { toast } = useToast();
   const [aiTools, setAiTools] = useState<AiToolTypeCard[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
+
+  const [totalToolsCount, setTotalToolsCount] = useState<number>(0);
+  const [totalWebsitesCount, setTotalWebsitesCount] = useState<number>(0);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [searchResults, setSearchResults] = useState<{
@@ -45,22 +49,26 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
           setBlogs(searchData.blogs);
           
           // Combine categories from both AI tools and blogs
-          const aiToolCats = searchData.aiTools.map((tool: AiToolTypeCard) => tool.category).filter(Boolean);
-          const blogCats = searchData.blogs.map((blog: any) => blog.category).filter(Boolean);
+          const aiToolCats = searchData.aiTools.map((tool: AiToolTypeCard) => tool.category).filter(Boolean) as string[];
+          const blogCats = searchData.blogs.map((blog: any) => blog.category).filter(Boolean) as string[];
           const allCats = Array.from(new Set([...aiToolCats, ...blogCats]));
           setCategories(allCats);
         } else {
-          // Fetch all AI tools and blogs
-          const [aiToolsData, blogsData] = await Promise.all([
+          // Fetch all AI tools, blogs, and total counts
+          const [aiToolsData, blogsData, totalToolsCount, totalWebsitesCount] = await Promise.all([
             client.fetch(AITOOLS_QUERY),
-            client.fetch(ALL_BLOGS_QUERY)
+            client.fetch(ALL_BLOGS_QUERY),
+            client.fetch(TOTAL_TOOLS_COUNT_QUERY),
+            client.fetch(TOTAL_WEBSITES_COUNT_QUERY)
           ]);
           setAiTools(aiToolsData);
           setBlogs(blogsData);
+          setTotalToolsCount(totalToolsCount);
+          setTotalWebsitesCount(totalWebsitesCount);
           setSearchResults(null);
           
           // Get categories from AI tools only
-          const aiToolCats = aiToolsData.map((tool: AiToolTypeCard) => tool.category).filter(Boolean);
+          const aiToolCats = aiToolsData.map((tool: AiToolTypeCard) => tool.category).filter(Boolean) as string[];
           const allCats = Array.from(new Set(aiToolCats));
           setCategories(allCats);
         }
@@ -71,23 +79,7 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
     fetchData();
   }, [query]);
 
-  // Trending: sort by likes in descending order
-  const trendingTools = [...aiTools]
-    .sort((a, b) => {
-      const likesA = b.likes || 0;
-      const likesB = a.likes || 0;
-      return likesA - likesB; // Descending order (highest likes first)
-    })
-    .slice(0, 5);
 
-  // Most Viewed: sort by views in descending order
-  const mostViewedTools = [...aiTools]
-    .sort((a, b) => {
-      const viewsA = b.views || 0;
-      const viewsB = a.views || 0;
-      return viewsB - viewsA; // Descending order (highest views first)
-    })
-    .slice(0, 5);
 
   // Filter by category
   const filteredTools = selectedCategory
@@ -172,73 +164,20 @@ export default function Home({ searchParams }: { searchParams: { query?: string 
         </section>
       )}
 
-      {/* Trending Section */}
-      <section className="section_container mt-8">
-        <h2 className="text-2xl font-bold mb-2 gradient-text">Most Liked AI Tools</h2>
-        <p className="text-gray-600 mb-4">Top AI tools ranked by community likes</p>
-        <ul className="card_grid-sm">
-          {trendingTools.map((tool, index) => (
-            <motion.div key={tool._id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-              <div className="relative">
-                <AiToolCard post={tool} />
-                {/* Show ranking badge for top 3 */}
-                {index < 3 && (
-                  <div className={`absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                    index === 0 ? 'bg-yellow-500' : 
-                    index === 1 ? 'bg-gray-400' : 
-                    'bg-orange-500'
-                  }`}>
-                    {index + 1}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </ul>
-        {/* Show total count of trending tools */}
-        <div className="text-center mt-6">
-          <p className="text-gray-600 text-sm">
-            Showing top {trendingTools.length} of {aiTools.length} AI tools by likes
-          </p>
-        </div>
-      </section>
 
-      {/* Most Viewed Section */}
-      <section className="section_container mt-8">
-        <h2 className="text-2xl font-bold mb-2 gradient-text">Most Viewed AI Tools</h2>
-        <p className="text-gray-600 mb-4">Top AI tools ranked by total views</p>
-        <ul className="card_grid-sm">
-          {mostViewedTools.map((tool, index) => (
-            <motion.div key={tool._id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-              <div className="relative">
-                <AiToolCard post={tool} />
-                {/* Show ranking badge for top 3 */}
-                {index < 3 && (
-                  <div className={`absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                    index === 0 ? 'bg-yellow-500' : 
-                    index === 1 ? 'bg-gray-400' : 
-                    'bg-orange-500'
-                  }`}>
-                    {index + 1}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </ul>
-        {/* Show total count of most viewed tools */}
-        <div className="text-center mt-6">
-          <p className="text-gray-600 text-sm">
-            Showing top {mostViewedTools.length} of {aiTools.length} AI tools by views
-          </p>
-        </div>
-      </section>
 
       {/* All AI Tools Section */}
       <section className="section_container mt-8">
-        <p className="text-30-semibold">
-          {query ? `Search results for "${query}"` : "All AI Tools"}
-        </p>
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-30-semibold">
+            {query ? `Search results for "${query}"` : "All AI Tools"}
+          </p>
+          {!query && (
+            <div className="text-gray-600 text-sm">
+              Showing {filteredTools.length} of {totalToolsCount} AI Tools
+            </div>
+          )}
+        </div>
         <ul className="card_grid-sm">
           {filteredTools.map(tool => (
             <AiToolCard key={tool._id} post={tool} />

@@ -68,7 +68,7 @@ members. It's a place where people help each other out.
 
 👉 **Categories & Filtering**: Browse through submitted AI tools with filtering options by category.
 
-👉 **Trending AI Tools**: Discover popular AI tools sorted by views and engagement.
+
 
 👉 **AI Tool Details Page**: Click on any AI tool to view its details, with multimedia and description displayed.
 
@@ -77,6 +77,10 @@ members. It's a place where people help each other out.
 👉 **Editor Picks**: Admins can highlight top AI tools using the "Editor Picks" feature managed via Sanity Studio.
 
 👉 **Views Counter**: Tracks the number of views for each AI tool.
+
+👉 **Like System**: Users can like AI tools (one like per user per tool) with visual feedback.
+
+
 
 👉 **Search**: Search functionality to find AI tools efficiently.
 

@@ -6,30 +6,57 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Author, AiTool } from "@/sanity/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 
 export type AiToolTypeCard = Omit<AiTool, "author"> & { author?: Author };
 
 const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [currentLikes, setCurrentLikes] = useState(post.likes || 0);
   const [isLiking, setIsLiking] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  const { _createdAt, views, likes, author, title, category, _id, image, description, types, toolWebsiteURL, toolImage } = post;
+  const { _createdAt, views, likes, author, title, category, _id, description, types, toolWebsiteURL, toolImage } = post;
+
+  // Check if user has already liked this tool on component mount
+  useEffect(() => {
+    const checkUserLike = async () => {
+      if (user?.uid && _id) {
+        try {
+          const response = await fetch("/api/check-user-like", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ aiToolId: _id, userId: user.uid }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setHasLiked(data.hasLiked);
+          }
+        } catch (error) {
+          console.error("Error checking user like:", error);
+        }
+      }
+    };
+
+    checkUserLike();
+  }, [user?.uid, _id]);
 
   // Deduplicate types to prevent duplicates from showing
   const uniqueTypes = Array.isArray(types) ? [...new Set(types)] : [];
   
-  // Use image if available, otherwise fallback to toolImage
-  const displayImage = image || toolImage;
+  // Use toolImage as the display image
+  const displayImage = toolImage;
 
   // Debug logging
   console.log("AiToolCard Debug:", {
     title,
-    image,
     toolImage,
     displayImage,
-    hasImage: !!image,
     hasToolImage: !!toolImage
   });
 
@@ -50,6 +77,76 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
 
   const shouldShowImage = isValidImageUrl(displayImage) && !imageError;
 
+  const handleLike = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to like AI tools",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (hasLiked) {
+      toast({
+        title: "Already Liked",
+        description: "You have already liked this tool",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isLiking) return;
+    
+    setIsLiking(true);
+    try {
+      const response = await fetch("/api/increment-likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          id: _id, 
+          likes: currentLikes, 
+          userId: user.uid, 
+          userEmail: user.email 
+        }),
+      });
+      
+      if (response.ok) {
+        setCurrentLikes((prev: number) => prev + 1);
+        setHasLiked(true);
+        toast({
+          title: "Liked!",
+          description: "Thank you for liking this AI tool",
+        });
+      } else {
+        const errorData = await response.json();
+        if (errorData.alreadyLiked) {
+          setHasLiked(true);
+          toast({
+            title: "Already Liked",
+            description: "You have already liked this tool",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: errorData.error || "Failed to like tool",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error incrementing likes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to like tool. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
   return (
     <li className="ai-tool-card group">
       <div className="flex-between">
@@ -60,27 +157,12 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
             <span className="text-14-medium">{views || 0}</span>
           </div>
           <div 
-            className="flex gap-1.5 items-center cursor-pointer hover:scale-110 transition-transform"
-            onClick={async () => {
-              if (isLiking) return;
-              setIsLiking(true);
-              try {
-                const response = await fetch("/api/increment-likes", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: _id, likes: currentLikes }),
-                });
-                if (response.ok) {
-                  setCurrentLikes((prev: number) => prev + 1);
-                }
-              } catch (error) {
-                console.error("Error incrementing likes:", error);
-              } finally {
-                setIsLiking(false);
-              }
-            }}
+            className={`flex gap-1.5 items-center cursor-pointer hover:scale-110 transition-transform ${
+              hasLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
+            }`}
+            onClick={handleLike}
           >
-            <HeartIcon className={`size-5 ${isLiking ? 'text-red-400' : 'text-red-500'}`} />
+            <HeartIcon className={`size-5 ${hasLiked ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
             <span className="text-14-medium">{currentLikes}</span>
           </div>
         </div>
@@ -189,22 +271,6 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
           <p className="text-16-medium">{category}</p>
         </Link>
         <div className="flex gap-2">
-          {toolWebsiteURL && (
-            <Button 
-              className="ai-tool-card_btn bg-green-600 hover:bg-green-700" 
-              asChild
-            >
-              <a 
-                href={toolWebsiteURL} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center gap-1"
-              >
-                <ExternalLinkIcon className="size-4" />
-                Visit Tool
-              </a>
-            </Button>
-          )}
           <Button className="ai-tool-card_btn" asChild>
             <Link href={`/ai-tool/${_id}`}>Details</Link>
           </Button>

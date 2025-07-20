@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeClient } from "@/sanity/lib/write-client";
+import { client } from "@/sanity/lib/client";
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, views } = await request.json();
+    const { documentId, documentType = "aiTool", views } = await request.json();
     
-    if (!id) {
-      return NextResponse.json({ error: "AI Tool ID is required" }, { status: 400 });
+    if (!documentId) {
+      return NextResponse.json({ error: "Document ID is required" }, { status: 400 });
     }
 
-    // Increment views
-    const updatedViews = (views || 0) + 1;
+    const documentTypeQuery = documentType === "usefulWebsite" ? "usefulWebsite" : "aiTool";
+
+    // Check if auto increment is enabled
+    const document = await client.fetch(
+      `*[_type == "${documentTypeQuery}" && _id == $id][0]{autoIncrementViews}`,
+      { id: documentId }
+    );
+
+    // Increment views only if auto increment is enabled
+    const shouldIncrement = document?.autoIncrementViews !== false;
+    const updatedViews = shouldIncrement ? (views || 0) + 1 : (views || 0);
     
     await writeClient
-      .patch(id)
+      .patch(documentId)
       .set({ views: updatedViews })
       .commit();
 
