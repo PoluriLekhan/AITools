@@ -30,3 +30,19 @@ export async function POST(request: NextRequest) {
     );
   }
 } 
+
+export function GET() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PUT() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function DELETE() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PATCH() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+} 

@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeClient } from "@/sanity/lib/write-client";
 import { client } from "@/sanity/lib/client";
 
+export function GET() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PUT() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function DELETE() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PATCH() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { 

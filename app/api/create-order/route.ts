@@ -29,4 +29,20 @@ export async function POST(request: NextRequest) {
     console.error("Error in /api/create-order:", error);
     return NextResponse.json({ error: "Order creation failed" }, { status: 500 });
   }
+}
+
+export function GET() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PUT() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function DELETE() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PATCH() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
 } 

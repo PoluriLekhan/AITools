@@ -19,7 +19,7 @@ async function verifyAdmin(req: NextRequest) {
   const idToken = authHeader.replace("Bearer ", "").trim();
   try {
     const decoded = await admin.auth().verifyIdToken(idToken);
-    if (ADMIN_EMAILS.includes(decoded.email)) {
+    if (decoded.email && ADMIN_EMAILS.includes(decoded.email)) {
       return decoded;
     }
     return null;
@@ -47,4 +47,20 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     return NextResponse.json({ error: "Failed to approve tools" }, { status: 500 });
   }
+}
+
+export function GET() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PUT() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function DELETE() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PATCH() {
+  return Response.json({ error: "Method Not Allowed" }, { status: 405 });
 }

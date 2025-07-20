@@ -79,4 +79,20 @@ export async function POST(request: NextRequest) {
       error: errorMessage || "Unknown error occurred while creating useful website" 
     }, { status: 500 });
   }
+}
+
+export function GET() {
+  return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PUT() {
+  return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function DELETE() {
+  return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
+}
+
+export function PATCH() {
+  return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 } 
