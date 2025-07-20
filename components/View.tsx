@@ -24,7 +24,7 @@ const View = ({ id }: { id: string }) => {
           fetch("/api/increment-views", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, views: data.views }),
+            body: JSON.stringify({ documentId: id, views: data.views }),
           });
         }
       } catch (error) {

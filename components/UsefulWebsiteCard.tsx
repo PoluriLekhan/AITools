@@ -29,9 +29,10 @@ export interface UsefulWebsiteTypeCard {
 
 interface UsefulWebsiteCardProps {
   post: UsefulWebsiteTypeCard;
+  onUnfavorite?: () => void;
 }
 
-const UsefulWebsiteCard = ({ post }: UsefulWebsiteCardProps) => {
+const UsefulWebsiteCard = ({ post, onUnfavorite }: UsefulWebsiteCardProps) => {
   const [likes, setLikes] = useState(post.likes || 0);
   const [views, setViews] = useState(post.views || 0);
   const [isLiked, setIsLiked] = useState(false);
@@ -44,6 +45,19 @@ const UsefulWebsiteCard = ({ post }: UsefulWebsiteCardProps) => {
       toast({
         title: "Login Required",
         description: "Please log in to like this website",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isLiked) {
+      if (onUnfavorite) {
+        onUnfavorite();
+        return;
+      }
+      toast({
+        title: "Already Liked",
+        description: "You have already liked this website",
         variant: "destructive",
       });
       return;
@@ -68,6 +82,7 @@ const UsefulWebsiteCard = ({ post }: UsefulWebsiteCardProps) => {
         const newLikes = likes + 1;
         setLikes(newLikes);
         setIsLiked(true);
+        window.dispatchEvent(new Event('favorite-added'));
         toast({
           title: "Liked!",
           description: "Thank you for your feedback",

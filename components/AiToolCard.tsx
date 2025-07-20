@@ -12,7 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 
 export type AiToolTypeCard = Omit<AiTool, "author"> & { author?: Author };
 
-const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
+interface AiToolCardProps {
+  post: AiToolTypeCard;
+  onUnfavorite?: () => void;
+}
+
+const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [currentLikes, setCurrentLikes] = useState(post.likes || 0);
@@ -49,8 +54,8 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
   // Deduplicate types to prevent duplicates from showing
   const uniqueTypes = Array.isArray(types) ? [...new Set(types)] : [];
   
-  // Use toolImage as the display image
-  const displayImage = toolImage;
+  // Use toolImage as the display image, fallback to image if not present
+  const displayImage = toolImage || (post as any).image;
 
   // Debug logging
   console.log("AiToolCard Debug:", {
@@ -88,6 +93,10 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
     }
 
     if (hasLiked) {
+      if (onUnfavorite) {
+        onUnfavorite();
+        return;
+      }
       toast({
         title: "Already Liked",
         description: "You have already liked this tool",
@@ -104,7 +113,7 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          id: _id, 
+          documentId: _id, 
           likes: currentLikes, 
           userId: user.uid, 
           userEmail: user.email 
@@ -112,6 +121,7 @@ const AiToolCard = ({ post }: { post: AiToolTypeCard }) => {
       });
       
       if (response.ok) {
+        window.dispatchEvent(new Event('favorite-added'));
         setCurrentLikes((prev: number) => prev + 1);
         setHasLiked(true);
         toast({

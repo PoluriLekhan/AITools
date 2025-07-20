@@ -341,3 +341,39 @@ export const ALL_NOTIFICATIONS_ADMIN_QUERY = defineQuery(`
   }
 }
 `);
+
+export const USER_FAVORITES_QUERY = defineQuery(`
+  *[_type == "userLike" && userId == $userId] | order(likedAt desc) {
+    _id,
+    likedAt,
+    aiToolId-> {
+      _id,
+      title,
+      _createdAt,
+      author-> { _id, name, image, bio },
+      views,
+      likes,
+      description,
+      category,
+      "image": toolImage,
+      types,
+      toolWebsiteURL,
+      status,
+      _type
+    },
+    usefulWebsiteId-> {
+      _id,
+      title,
+      _createdAt,
+      author-> { _id, name, image, bio },
+      views,
+      likes,
+      description,
+      category,
+      "image": websiteImage,
+      websiteURL,
+      status,
+      _type
+    }
+  }
+`);

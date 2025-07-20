@@ -9,6 +9,8 @@ import {
   AITOOLS_BY_AUTHOR_QUERY,
   AUTHOR_BY_EMAIL_QUERY,
   ALL_BLOGS_QUERY,
+  USEFUL_WEBSITES_BY_AUTHOR_QUERY,
+  USER_FAVORITES_QUERY,
 } from "@/sanity/lib/queries";
 
 // Reusable function to fetch AI tools
@@ -133,5 +135,27 @@ export async function fetchAIToolTitlesAndURLs() {
   } catch (error) {
     console.error("Error fetching AI tool titles and URLs:", error);
     return { success: false, error: "Failed to fetch AI tool titles and URLs" };
+  }
+}
+
+// Fetch useful websites by author
+export async function fetchUsefulWebsitesByAuthor(authorId: string) {
+  try {
+    const websites = await client.fetch(USEFUL_WEBSITES_BY_AUTHOR_QUERY, { id: authorId });
+    return { success: true, data: websites };
+  } catch (error) {
+    console.error("Error fetching useful websites by author:", error);
+    return { success: false, error: "Failed to fetch useful websites by author" };
+  }
+}
+
+// Fetch user favorites (likes)
+export async function fetchUserFavorites(userId: string) {
+  try {
+    const favorites = await client.fetch(USER_FAVORITES_QUERY, { userId });
+    return { success: true, data: favorites };
+  } catch (error) {
+    console.error("Error fetching user favorites:", error);
+    return { success: false, error: "Failed to fetch user favorites" };
   }
 } 

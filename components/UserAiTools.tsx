@@ -1,31 +1,31 @@
 import React from "react";
-import { fetchAIToolsByAuthor } from "@/lib/sanity-client";
-import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
+import { fetchUsefulWebsitesByAuthor } from "@/lib/sanity-client";
+import UsefulWebsiteCard, { UsefulWebsiteTypeCard } from "@/components/UsefulWebsiteCard";
 
-const UserAiTools = async ({ id, status }: { id: string; status?: string }) => {
-  const result = await fetchAIToolsByAuthor(id);
-  const aiTools = result.success ? result.data : [];
+const UserUsefulWebsites = async ({ id, status }: { id: string; status?: string }) => {
+  const result = await fetchUsefulWebsitesByAuthor(id);
+  const websites = result.success ? result.data : [];
   
   // Filter by status if provided
-  const filteredTools = status 
-    ? aiTools.filter((tool: AiToolTypeCard) => tool.status === status)
-    : aiTools;
+  const filteredWebsites = status 
+    ? websites.filter((site: UsefulWebsiteTypeCard) => site.status === status)
+    : websites;
 
   return (
     <>
-      {filteredTools.length > 0 ? (
-        filteredTools.map((aiTool: AiToolTypeCard) => (
-          <AiToolCard key={aiTool._id} post={aiTool} />
+      {filteredWebsites.length > 0 ? (
+        filteredWebsites.map((site: UsefulWebsiteTypeCard) => (
+          <UsefulWebsiteCard key={site._id} post={site} />
         ))
       ) : (
         <p className="text-gray-500 text-center py-4">
-          {status === "pending" ? "No pending AI Tools found." : 
-           status === "approved" ? "No approved AI Tools found." : 
-           "No AI Tools found."}
+          {status === "pending" ? "No pending Useful Websites found." : 
+           status === "approved" ? "No approved Useful Websites found." : 
+           "No Useful Websites found."}
         </p>
       )}
     </>
   );
 };
 
-export default UserAiTools;
+export default UserUsefulWebsites;

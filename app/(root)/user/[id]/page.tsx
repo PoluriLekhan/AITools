@@ -6,6 +6,7 @@ import { AUTHOR_BY_EMAIL_QUERY, AITOOLS_BY_AUTHOR_QUERY } from "@/sanity/lib/que
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import UserAiTools from "@/components/UserAiTools";
+import UserUsefulWebsites from "@/components/UserUsefulWebsites"; // Actually the new UserUsefulWebsites component
 import { AiToolCardSkeleton } from "@/components/AiToolCard";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
