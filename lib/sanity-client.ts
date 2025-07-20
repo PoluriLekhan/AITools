@@ -70,10 +70,13 @@ export async function fetchUserNotifications(userEmail: string) {
 // Fetch unseen notifications count
 export async function fetchUnseenNotificationsCount(userEmail: string) {
   try {
-    const count = await client.fetch(UNSEEN_NOTIFICATIONS_COUNT_QUERY, { userEmail });
+    if (!userEmail || typeof userEmail !== "string" || userEmail.trim() === "") {
+      return { success: true, data: 0 };
+    }
+    const count = await client.withConfig({ useCdn: false }).fetch(UNSEEN_NOTIFICATIONS_COUNT_QUERY, { userEmail });
     return { success: true, data: count };
   } catch (error) {
-    console.error("Error fetching unseen notifications count:", error);
+    console.error("Error fetching unseen notifications count:", error, userEmail);
     return { success: false, error: "Failed to fetch unseen notifications count" };
   }
 }
