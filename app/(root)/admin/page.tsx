@@ -13,9 +13,7 @@ import {
   updateAiTool, 
   updateAiToolStatus,
   updateBlogStatus,
-  deleteBlog,
-  createNotification,
-  deleteNotification
+  deleteBlog
 } from "@/lib/actions";
 import { useRef } from "react";
 import { useMemo } from "react";
@@ -90,6 +88,9 @@ export default function AdminPage() {
   const [selectedUsefulWebsiteRequests, setSelectedUsefulWebsiteRequests] = useState<string[]>([]);
   const [editUsefulWebsite, setEditUsefulWebsite] = useState<any | null>(null);
   const [editUsefulWebsiteForm, setEditUsefulWebsiteForm] = useState<Partial<any>>({});
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState<string>("");
+  const [editImageUrlInput, setEditImageUrlInput] = useState<string>("");
   const isSuperAdmin = users.find(u => u.email === user?.email)?.role === "super-admin";
   // Remove activeTab, Tabs, and Card usage
   // Restore original section stacking and layout
@@ -968,7 +969,7 @@ export default function AdminPage() {
               <div className="flex items-center mb-4 gap-2">
                 <input
                   type="text"
-                  placeholder="Search useful websites..."
+                  placeholder="Search pending useful websites..."
                   className="flex-1 p-2 border rounded"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

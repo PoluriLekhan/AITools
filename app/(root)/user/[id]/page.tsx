@@ -5,8 +5,9 @@ import { client } from "@/sanity/lib/client";
 import { AUTHOR_BY_EMAIL_QUERY, AITOOLS_BY_AUTHOR_QUERY } from "@/sanity/lib/queries";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import UserAiTools from "@/components/UserAiTools";
-import UserUsefulWebsites from "@/components/UserUsefulWebsites"; // Actually the new UserUsefulWebsites component
+import UserAiTools from "@/components/UserAiTools"; // This is the UserUsefulWebsites component
+// UserUsefulWebsites is actually exported from UserAiTools.tsx
+const UserUsefulWebsites = UserAiTools;
 import { AiToolCardSkeleton } from "@/components/AiToolCard";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -187,7 +188,6 @@ const Page = ({ params }: { params: { id: string } }) => {
             <h1 className="text-3xl font-bold gradient-text">My Submissions</h1>
             <p className="text-gray-600 mt-2">Track your AI tool submissions and their status</p>
           </div>
-          
           {/* Show different sections based on user role */}
           {user.isAdmin ? (
             // Admin users - show only approved tools (since they auto-approve)
@@ -235,6 +235,11 @@ const Page = ({ params }: { params: { id: string } }) => {
                   <p className="text-gray-500 text-center py-4">No approved AI Tools found.</p>
                 )}
               </ul>
+              {/* Approved Useful Websites for Admin */}
+              <div className="mt-10">
+                <h2 className="text-2xl font-bold mb-4 gradient-text">My Approved Useful Websites</h2>
+                <UserUsefulWebsites id={user._id} status="approved" />
+              </div>
             </div>
           ) : (
             // Regular users - show pending and approved sections
@@ -252,26 +257,30 @@ const Page = ({ params }: { params: { id: string } }) => {
                             <div>
                               <h3 className="text-lg font-bold">{aiTool.title}</h3>
                               <p className="text-sm text-gray-600">{aiTool.category}</p>
-                              <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                                Pending
-                              </span>
                             </div>
                           </div>
                           <p className="ai-tool-card_desc">{aiTool.description}</p>
-                                                  <div className="flex items-center justify-between mt-3">
-                          <span className="ai-tool-card_date">
-                            {new Date(aiTool._createdAt).toLocaleDateString()}
-                          </span>
-                          <div className="flex gap-2">
-                            <a
-                              href={`/ai-tool/${aiTool._id}`}
-                              className="px-3 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
-                            >
-                              View Details
-                            </a>
-                            <span className="text-sm text-gray-500">Awaiting approval</span>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="ai-tool-card_date">
+                              {new Date(aiTool._createdAt).toLocaleDateString()}
+                            </span>
+                            <div className="flex gap-2">
+                              <a
+                                href={`/ai-tool/${aiTool._id}`}
+                                className="px-3 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
+                              >
+                                View Details
+                              </a>
+                              <a
+                                href={aiTool.toolWebsiteURL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ai-tool-card_btn"
+                              >
+                                Visit Tool
+                              </a>
+                            </div>
                           </div>
-                        </div>
                         </div>
                       </li>
                     ))
@@ -280,9 +289,13 @@ const Page = ({ params }: { params: { id: string } }) => {
                   )}
                 </ul>
               </div>
-
+              {/* Pending Useful Websites Section */}
+              <div className="mt-10">
+                <h2 className="text-2xl font-bold mb-4 gradient-text">Pending Useful Websites</h2>
+                <UserUsefulWebsites id={user._id} status="pending" />
+              </div>
               {/* Approved AI Tools Section */}
-              <div>
+              <div className="mt-10">
                 <h2 className="text-2xl font-bold mb-4 gradient-text">Approved AI Tools</h2>
                 <ul className="card_grid-sm">
                   {approvedTools.length > 0 ? (
@@ -297,27 +310,27 @@ const Page = ({ params }: { params: { id: string } }) => {
                             </div>
                           </div>
                           <p className="ai-tool-card_desc">{aiTool.description}</p>
-                                                  <div className="flex items-center justify-between mt-3">
-                          <span className="ai-tool-card_date">
-                            {new Date(aiTool._createdAt).toLocaleDateString()}
-                          </span>
-                          <div className="flex gap-2">
-                            <a
-                              href={`/ai-tool/${aiTool._id}`}
-                              className="px-3 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
-                            >
-                              View Details
-                            </a>
-                            <a
-                              href={aiTool.toolWebsiteURL}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="ai-tool-card_btn"
-                            >
-                              Visit Tool
-                            </a>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="ai-tool-card_date">
+                              {new Date(aiTool._createdAt).toLocaleDateString()}
+                            </span>
+                            <div className="flex gap-2">
+                              <a
+                                href={`/ai-tool/${aiTool._id}`}
+                                className="px-3 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
+                              >
+                                View Details
+                              </a>
+                              <a
+                                href={aiTool.toolWebsiteURL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ai-tool-card_btn"
+                              >
+                                Visit Tool
+                              </a>
+                            </div>
                           </div>
-                        </div>
                         </div>
                       </li>
                     ))
@@ -325,6 +338,11 @@ const Page = ({ params }: { params: { id: string } }) => {
                     <p className="text-gray-500 text-center py-4">No approved AI Tools found.</p>
                   )}
                 </ul>
+              </div>
+              {/* Approved Useful Websites Section */}
+              <div className="mt-10">
+                <h2 className="text-2xl font-bold mb-4 gradient-text">Approved Useful Websites</h2>
+                <UserUsefulWebsites id={user._id} status="approved" />
               </div>
             </>
           )}
