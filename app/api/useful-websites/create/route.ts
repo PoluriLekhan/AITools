@@ -22,8 +22,6 @@ export async function POST(request: NextRequest) {
     
     // If user doesn't exist, we need to create them first
     if (!existingUser) {
-      // We need user details to create the author
-      // For now, return an error asking for more user info
       return NextResponse.json({ 
         error: "User profile not found. Please try logging out and logging back in, or contact support." 
       }, { status: 400 });
@@ -68,9 +66,17 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    let errorMessage = "Failed to create useful website";
+    if (error && typeof error === "object" && error !== null && "message" in error && typeof (error as any).message === "string") {
+      errorMessage = (error as any).message;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    } else {
+      errorMessage = JSON.stringify(error);
+    }
     console.error("Error creating useful website:", error);
     return NextResponse.json({ 
-      error: "Failed to create useful website" 
+      error: errorMessage || "Unknown error occurred while creating useful website" 
     }, { status: 500 });
   }
 } 
