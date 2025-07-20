@@ -11,7 +11,7 @@ const handleRazorpay = async (amount, plan, setLoading, planKey) => {
     const res = await fetch("/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ amount: Number(amount) }), // Ensure amount is a number
     });
     const data = await res.json();
     if (!data.orderId) throw new Error("Order creation failed");
