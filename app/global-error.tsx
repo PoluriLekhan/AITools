@@ -4,10 +4,25 @@ import * as Sentry from "@sentry/nextjs";
 import NextError from "next/error";
 import { useEffect } from "react";
 
+function isChunkLoadError(error: any) {
+  return error && error.name === "ChunkLoadError";
+}
+
 export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
+
+  if (isChunkLoadError(error)) {
+    return (
+      <html>
+        <body>
+          <h1>Oops! A required part of the app failed to load.</h1>
+          <p>This is usually caused by a new deployment. Please refresh the page.</p>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html>
