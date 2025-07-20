@@ -42,7 +42,10 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
 
   // Fetch unseen notifications count
   const fetchUnseenCount = async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      console.warn("No user email, skipping notifications fetch (unseen count)");
+      return;
+    }
     
     try {
       const response = await fetch("/api/notifications/fetch", {
@@ -62,7 +65,10 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
 
   // Fetch all notifications
   const fetchNotifications = async () => {
-    if (!user?.email) return;
+    if (!user?.email) {
+      console.warn("No user email, skipping notifications fetch (all notifications)");
+      return;
+    }
     
     try {
       const response = await fetch("/api/notifications/fetch", {

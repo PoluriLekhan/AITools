@@ -3,11 +3,13 @@ import { fetchUserNotifications, fetchUnseenNotificationsCount } from "@/lib/san
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, type } = await request.json();
+    const body = await request.json();
+    console.log("Received body in /api/notifications/fetch:", body);
+    const { userEmail, type } = body;
     
     if (!userEmail) {
       return NextResponse.json(
-        { error: "User email is required" },
+        { error: "User email is required in request body", received: body },
         { status: 400 }
       );
     }
