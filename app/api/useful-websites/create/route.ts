@@ -7,6 +7,13 @@ export async function POST(request: NextRequest) {
   try {
     const { title, description, category, websiteURL, websiteImage, pitch, authorId: firebaseUid, amount } = await request.json();
     
+    console.log('Received amount:', amount);
+    if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) <= 0) {
+      return NextResponse.json({
+        error: "Amount is required and must be a positive number"
+      }, { status: 400 });
+    }
+
     if (!title || !description || !category || !websiteURL || !firebaseUid) {
       return NextResponse.json({ 
         error: "Missing required fields: title, description, category, websiteURL, and authorId are required" 
@@ -52,7 +59,7 @@ export async function POST(request: NextRequest) {
       pitch: pitch || "",
       status: "pending",
       views: 0,
-      amount: typeof amount === 'number' ? amount : 0,
+      amount: Number(amount),
       autoIncrementViews: true,
       author: {
         _type: "reference",

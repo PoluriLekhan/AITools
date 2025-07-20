@@ -95,6 +95,13 @@ const UsefulWebsiteForm = () => {
       
       console.log("Creating useful website...");
       
+      const amountRaw = formData.get("amount");
+      const amount = Number(amountRaw);
+      if (!amountRaw || isNaN(amount) || amount <= 0) {
+        setErrors({ amount: "Amount is required and must be a positive number" });
+        return { error: "Amount is required and must be a positive number", status: "ERROR" };
+      }
+
       // Call the API to create the useful website
       const response = await fetch("/api/useful-websites/create", {
         method: "POST",
@@ -110,7 +117,7 @@ const UsefulWebsiteForm = () => {
           thumbnail: "/logo.png", // Send thumbnail to match backend schema
           pitch: formValues.pitch,
           authorId: user.uid,
-          amount: typeof formData.get("amount") === "string" && formData.get("amount") !== "" ? Number(formData.get("amount")) : 0,
+          amount, // send as number
         }),
       });
 
@@ -278,7 +285,22 @@ const UsefulWebsiteForm = () => {
         {errors.websiteURL && <p className="ai-tool-form_error">{errors.websiteURL}</p>}
       </div>
 
-
+      <div>
+        <label htmlFor="amount" className="ai-tool-form_label">
+          Amount
+        </label>
+        <Input
+          id="amount"
+          name="amount"
+          type="number"
+          className="ai-tool-form_input"
+          required
+          min="1"
+          step="1"
+          placeholder="Enter amount (e.g., 10)"
+        />
+        {errors.amount && <p className="ai-tool-form_error">{errors.amount}</p>}
+      </div>
 
       <div>
         <label htmlFor="pitch" className="ai-tool-form_label">
