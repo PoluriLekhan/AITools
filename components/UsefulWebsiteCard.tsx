@@ -74,7 +74,10 @@ const UsefulWebsiteCard = ({ post, onUnfavorite }: UsefulWebsiteCardProps) => {
         },
         body: JSON.stringify({
           documentId: post._id,
+          userId: user?.uid,
+          userEmail: user?.email,
           documentType: "usefulWebsite",
+          likes: post.likes || 0
         }),
       });
 
@@ -115,7 +118,10 @@ const UsefulWebsiteCard = ({ post, onUnfavorite }: UsefulWebsiteCardProps) => {
         },
         body: JSON.stringify({
           documentId: post._id,
+          userId: user?.uid,
+          userEmail: user?.email,
           documentType: "usefulWebsite",
+          views: post.views || 0
         }),
       });
       setViews(prev => prev + 1);

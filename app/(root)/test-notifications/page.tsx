@@ -8,29 +8,16 @@ import { useToast } from "@/hooks/use-toast";
 export default function TestNotificationsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const sendTestNotification = async () => {
-    if (!user?.email) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to send test notifications",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
+  const handleCreateNotification = async () => {
+    if (loading || !user?.uid || !title || !content || !type) return;
+    setLoading(true);
     try {
       const response = await fetch("/api/notifications/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "Test Notification",
-          content: "This is a test notification to demonstrate the notification system functionality.",
-          type: "general",
-          sentByUserId: "test-user-id", // This would normally be the actual user ID
-        }),
+        body: JSON.stringify({ title, content, type, sentByUserId: user.uid }),
       });
 
       if (response.ok) {
@@ -52,16 +39,16 @@ export default function TestNotificationsPage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const cleanupNotifications = async () => {
-    setIsLoading(true);
+  const handleCleanup = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
       const response = await fetch("/api/notifications/cleanup", {
-        method: "POST",
-      });
+        method: "POST" });
 
       if (response.ok) {
         const result = await response.json();
@@ -83,7 +70,7 @@ export default function TestNotificationsPage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -110,19 +97,19 @@ export default function TestNotificationsPage() {
 
           <div className="flex gap-4">
             <Button
-              onClick={sendTestNotification}
-              disabled={isLoading || !user}
+              onClick={handleCreateNotification}
+              disabled={loading || !user}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {isLoading ? "Sending..." : "Send Test Notification"}
+              {loading ? "Sending..." : "Send Test Notification"}
             </Button>
 
             <Button
-              onClick={cleanupNotifications}
-              disabled={isLoading}
+              onClick={handleCleanup}
+              disabled={loading}
               variant="outline"
             >
-              {isLoading ? "Cleaning..." : "Cleanup Expired Notifications"}
+              {loading ? "Cleaning..." : "Cleanup Expired Notifications"}
             </Button>
           </div>
         </div>

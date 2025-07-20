@@ -670,9 +670,11 @@ export default function AdminPage() {
     }
   };
 
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const handleDeleteNotification = async (notificationId: string) => {
-    if (!window.confirm("Are you sure you want to delete this notification? This cannot be undone.")) return;
-    
+    if (deleteLoading || !notificationId) return;
+    setDeleteLoading(true);
     try {
       const response = await fetch("/api/notifications/delete", {
         method: "DELETE",
@@ -689,6 +691,8 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error deleting notification:", error);
       alert("Failed to delete notification");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1395,6 +1399,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleDeleteNotification(notification._id)}
                         className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-all"
+                        disabled={deleteLoading || !notification._id}
                       >
                         Delete
                       </button>

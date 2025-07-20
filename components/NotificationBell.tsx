@@ -41,6 +41,7 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
   const [deletionTimers, setDeletionTimers] = useState<{ [key: string]: NodeJS.Timeout }>({});
   // Prevent multiple simultaneous fetches
   const [isFetchingNotifications, setIsFetchingNotifications] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Fetch unseen notifications count
   const fetchUnseenCount = async () => {
@@ -69,18 +70,14 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
   };
 
   // Fetch all notifications
-  const fetchNotifications = async () => {
-    if (!user?.email) {
-      console.warn("No user email, skipping notifications fetch (all notifications)");
-      return;
-    }
-    if (isFetchingNotifications) return;
-    setIsFetchingNotifications(true);
+  const fetchNotifications = async (type: 'all' | 'count') => {
+    if (loading || !user?.email) return;
+    setLoading(true);
     try {
       const response = await fetch("/api/notifications/fetch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail: user.email, type: "all" }),
+        body: JSON.stringify({ userEmail: user.email, type }),
       });
       console.log("Request body for /api/notifications/fetch (all):", { userEmail: user.email, type: "all" });
       if (response.ok) {
@@ -90,7 +87,7 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
-      setIsFetchingNotifications(false);
+      setLoading(false);
     }
   };
 
@@ -220,7 +217,7 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
           
           // Refresh notifications after cleanup
           fetchUnseenCount();
-          fetchNotifications();
+          fetchNotifications("all");
         } catch (error) {
           console.error("Error during notification cleanup:", error);
         }
@@ -274,7 +271,7 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
 
       // Then fetch current notifications
       fetchUnseenCount();
-      fetchNotifications();
+      fetchNotifications("all");
     };
 
     initializeNotifications();
@@ -282,7 +279,7 @@ const NotificationBell = ({ isMobile = false }: { isMobile?: boolean }) => {
     // Check for new notifications more frequently (every 10 seconds) to catch new notifications quickly
     const interval = setInterval(() => {
       fetchUnseenCount();
-      fetchNotifications();
+      fetchNotifications("all");
     }, 10000);
 
     return () => clearInterval(interval);

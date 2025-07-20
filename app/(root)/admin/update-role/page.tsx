@@ -59,12 +59,8 @@ export default function UpdateRolePage() {
             placeholder="Enter email address"
           />
         </div>
-        <button
-          onClick={handleUpdateRole}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "Updating..." : "Update to Admin"}
+        <button onClick={handleUpdateRole} disabled={loading || !email}>
+          {loading ? "Updating..." : "Update Role"}
         </button>
         {result && (
           <div className={`p-4 rounded-md ${

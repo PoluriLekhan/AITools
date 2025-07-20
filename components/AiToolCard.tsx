@@ -24,27 +24,27 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
   const [isLiking, setIsLiking] = useState(false);
   const [hasLiked, setHasLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
   
   const { _createdAt, views, likes, author, title, category, _id, description, types, toolWebsiteURL, toolImage } = post;
 
   // Check if user has already liked this tool on component mount
   useEffect(() => {
     const checkUserLike = async () => {
-      if (user?.uid && _id) {
-        try {
-          const response = await fetch("/api/check-user-like", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ aiToolId: _id, userId: user.uid, userEmail: user.email }),
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setHasLiked(data.hasLiked);
-          }
-        } catch (error) {
-          console.error("Error checking user like:", error);
+      if (!user?.uid || !_id) return;
+      try {
+        const response = await fetch("/api/check-user-like", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ aiToolId: _id, userId: user.uid, userEmail: user.email }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setHasLiked(data.hasLiked);
         }
+      } catch (error) {
+        console.error("Error checking user like:", error);
       }
     };
 
@@ -83,18 +83,21 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
   const shouldShowImage = isValidImageUrl(displayImage) && !imageError;
 
   const handleLike = async () => {
+    if (likeLoading || !user?.uid || !user?.email || !_id) return;
+    setLikeLoading(true);
     if (!user) {
       toast({
         title: "Login Required",
         description: "Please log in to like AI tools",
         variant: "destructive",
       });
+      setLikeLoading(false);
       return;
     }
-
     if (hasLiked) {
       if (onUnfavorite) {
         onUnfavorite();
+        setLikeLoading(false);
         return;
       }
       toast({
@@ -102,21 +105,19 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
         description: "You have already liked this tool",
         variant: "destructive",
       });
+      setLikeLoading(false);
       return;
     }
-
-    if (isLiking) return;
-    
-    setIsLiking(true);
     try {
       const response = await fetch("/api/increment-likes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          documentId: _id, 
-          likes: currentLikes, 
-          userId: user.uid, 
-          userEmail: user.email 
+        body: JSON.stringify({
+          documentId: _id,
+          likes: currentLikes,
+          userId: user.uid,
+          userEmail: user.email,
+          documentType: "aiTool"
         }),
       });
       
@@ -153,7 +154,7 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
         variant: "destructive",
       });
     } finally {
-      setIsLiking(false);
+      setLikeLoading(false);
     }
   };
 
@@ -167,10 +168,9 @@ const AiToolCard = ({ post, onUnfavorite }: AiToolCardProps) => {
             <span className="text-14-medium">{views || 0}</span>
           </div>
           <div 
-            className={`flex gap-1.5 items-center cursor-pointer hover:scale-110 transition-transform ${
-              hasLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
-            }`}
+            className={`flex gap-1.5 items-center cursor-pointer hover:scale-110 transition-transform ${hasLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
             onClick={handleLike}
+            style={{ pointerEvents: likeLoading || !user?.uid || !user?.email || !_id ? 'none' : 'auto', opacity: likeLoading || !user?.uid || !user?.email || !_id ? 0.5 : 1 }}
           >
             <HeartIcon className={`size-5 ${hasLiked ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
             <span className="text-14-medium">{currentLikes}</span>

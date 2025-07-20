@@ -5,6 +5,21 @@ import { HeartIcon } from "lucide-react";
 const View = ({ id }: { id: string }) => {
   const [totalViews, setTotalViews] = useState<number | null>(null);
   const [totalLikes, setTotalLikes] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const incrementViews = async (id: string) => {
+    if (loading || !id) return;
+    setLoading(true);
+    try {
+      await fetch("/api/increment-views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: id }),
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchViews = async () => {
@@ -21,11 +36,7 @@ const View = ({ id }: { id: string }) => {
           setTotalLikes(data.likes);
           
           // Increment views
-          fetch("/api/increment-views", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ documentId: id, views: data.views }),
-          });
+          incrementViews(id);
         }
       } catch (error) {
         console.error("Error fetching views:", error);

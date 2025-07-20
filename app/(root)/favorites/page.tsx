@@ -11,7 +11,7 @@ const FavoritesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [favorites, setFavorites] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -69,6 +69,21 @@ const FavoritesPage = () => {
         description: "Failed to remove from favorites.",
         variant: "destructive",
       });
+    }
+  };
+
+  const checkUserLike = async (toolId: string) => {
+    if (loading || !user?.uid || !user?.email || !toolId) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/check-user-like", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toolId, userId: user.uid, userEmail: user.email }),
+      });
+      // ... handle response ...
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -20,16 +20,28 @@ const LoginPage = () => {
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        await fetch("/api/sync-firebase-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            uid: user.uid,
-            displayName: user.displayName,
-            email: user.email,
-            photoURL: user.photoURL,
-          }),
-        });
+        if (!user.uid || !user.email) {
+          toast({
+            title: "Login error",
+            description: "Missing user ID or email. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+        if (!loadingProvider) { // Prevent repeated requests
+          setLoadingProvider("sync");
+          await fetch("/api/sync-firebase-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              uid: user.uid,
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL,
+            }),
+          });
+          setLoadingProvider(null);
+        }
         // Show welcome toast and redirect to home page
         toast({
           title: "Login successful!",
@@ -48,7 +60,7 @@ const LoginPage = () => {
       }
     });
     return () => unsubscribe();
-  }, [router, toast, auth]);
+  }, [router, toast, auth, loadingProvider]);
 
   const handleProviderLogin = async (provider: "google" | "github") => {
     setLoading(true);

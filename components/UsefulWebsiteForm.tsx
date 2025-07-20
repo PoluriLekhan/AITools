@@ -16,7 +16,7 @@ const UsefulWebsiteForm = () => {
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
-  const [isPending, setIsPending] = useState(false);
+  const [loading, setLoading] = useState(false);
 
 
   interface UsefulWebsiteFormState {
@@ -203,10 +203,10 @@ const UsefulWebsiteForm = () => {
   };
 
   const formAction = async (formData: FormData) => {
-    setIsPending(true);
+    setLoading(true);
     const result = await handleFormSubmit(formData);
     setState(result);
-    setIsPending(false);
+    setLoading(false);
   };
 
   return (
@@ -298,9 +298,9 @@ const UsefulWebsiteForm = () => {
       <Button
         type="submit"
         className="ai-tool-form_btn text-white"
-        disabled={isPending}
+        disabled={loading}
       >
-        {isPending ? "Submitting..." : "Submit Useful Website"}
+        {loading ? "Submitting..." : "Submit Useful Website"}
         <Send className="size-6 ml-2" />
       </Button>
     </form>
