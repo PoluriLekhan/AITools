@@ -36,7 +36,6 @@ const UsefulWebsiteForm = () => {
         description: formData.get("description") as string,
         category: formData.get("category") as string,
         websiteURL: formData.get("websiteURL") as string,
-        websiteImage: "/logo.png", // Default image
         pitch,
       };
 
@@ -106,8 +105,6 @@ const UsefulWebsiteForm = () => {
           description: formValues.description,
           category: formValues.category,
           websiteURL: formValues.websiteURL,
-          websiteImage: "/logo.png",
-          thumbnail: "/logo.png", // Send thumbnail to match backend schema
           pitch: formValues.pitch,
           authorId: user.uid,
         }),
