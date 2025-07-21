@@ -1,12 +1,8 @@
+"use client";
 import React from "react";
-import { fetchUsefulWebsitesByAuthor } from "@/lib/sanity-client";
 import UsefulWebsiteCard, { UsefulWebsiteTypeCard } from "@/components/UsefulWebsiteCard";
 
-const UserUsefulWebsites = async ({ id, status }: { id: string; status?: string }) => {
-  const result = await fetchUsefulWebsitesByAuthor(id);
-  const websites = result.success ? result.data : [];
-  
-  // Filter by status if provided
+const UserUsefulWebsites = ({ websites, status }: { websites: UsefulWebsiteTypeCard[]; status?: string }) => {
   const filteredWebsites = status 
     ? websites.filter((site: UsefulWebsiteTypeCard) => site.status === status)
     : websites;

@@ -11,6 +11,7 @@ const UserUsefulWebsites = UserAiTools;
 import { AiToolCardSkeleton } from "@/components/AiToolCard";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
+import { fetchUsefulWebsitesByAuthor } from "@/lib/sanity-client";
 
 interface User {
   _id: string;
@@ -42,6 +43,24 @@ interface AiTool {
   status: string;
 }
 
+interface UsefulWebsiteTypeCard {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  websiteURL: string;
+  image: string;
+  views?: number;
+  _createdAt: string;
+  author?: {
+    _id: string;
+    name: string;
+    image?: string;
+    bio?: string;
+  };
+  status: "pending" | "approved";
+}
+
 const Page = ({ params }: { params: { id: string } }) => {
   const email = decodeURIComponent(params.id);
   const { user: currentUser } = useAuth();
@@ -52,6 +71,8 @@ const Page = ({ params }: { params: { id: string } }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  // Add state for usefulWebsites
+  const [usefulWebsites, setUsefulWebsites] = useState<UsefulWebsiteTypeCard[]>([]);
 
   // Fetch user data and AI tools
   const fetchUserData = async () => {
@@ -67,6 +88,10 @@ const Page = ({ params }: { params: { id: string } }) => {
       // Fetch AI tools for this user
       const toolsData = await client.fetch(AITOOLS_BY_AUTHOR_QUERY, { id: userData._id });
       setAiTools(toolsData);
+
+      // Fetch useful websites for this user
+      const websitesResult = await fetchUsefulWebsitesByAuthor(userData._id);
+      setUsefulWebsites(websitesResult.success ? websitesResult.data : []);
     } catch (err) {
       console.error("Error fetching user data:", err);
       setError("Failed to load user data");
@@ -238,7 +263,7 @@ const Page = ({ params }: { params: { id: string } }) => {
               {/* Approved Useful Websites for Admin */}
               <div className="mt-10">
                 <h2 className="text-2xl font-bold mb-4 gradient-text">My Approved Useful Websites</h2>
-                <UserUsefulWebsites id={user._id} status="approved" />
+                <UserUsefulWebsites websites={usefulWebsites} status="approved" />
               </div>
             </div>
           ) : (
@@ -292,7 +317,7 @@ const Page = ({ params }: { params: { id: string } }) => {
               {/* Pending Useful Websites Section */}
               <div className="mt-10">
                 <h2 className="text-2xl font-bold mb-4 gradient-text">Pending Useful Websites</h2>
-                <UserUsefulWebsites id={user._id} status="pending" />
+                <UserUsefulWebsites websites={usefulWebsites} status="pending" />
               </div>
               {/* Approved AI Tools Section */}
               <div className="mt-10">
@@ -342,7 +367,7 @@ const Page = ({ params }: { params: { id: string } }) => {
               {/* Approved Useful Websites Section */}
               <div className="mt-10">
                 <h2 className="text-2xl font-bold mb-4 gradient-text">Approved Useful Websites</h2>
-                <UserUsefulWebsites id={user._id} status="approved" />
+                <UserUsefulWebsites websites={usefulWebsites} status="approved" />
               </div>
             </>
           )}

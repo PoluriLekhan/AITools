@@ -90,6 +90,7 @@ export type AiTool = {
   toolWebsiteURL?: string;
   pitch?: string;
   views?: number;
+  autoIncrementViews?: boolean;
   status?: "pending" | "approved" | "rejected";
   author?: {
     _ref: string;
