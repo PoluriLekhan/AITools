@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { fetchAuthorByEmail, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
+// Removed import { Dialog } from "@/components/ui/dialog"; because the module cannot be found
 
 const Navbar = () => {
   const { user } = useAuth();
