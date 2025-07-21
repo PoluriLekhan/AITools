@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { fetchAuthorByEmail, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe } from "lucide-react";
+import { Dialog } from "@/components/ui/dialog";
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ const Navbar = () => {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAboutDropdownMobile, setShowAboutDropdownMobile] = useState(false);
+  const [aboutModalOpen, setAboutModalOpen] = useState(false);
 
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
@@ -136,7 +138,6 @@ const Navbar = () => {
     { href: "/", label: "Home", icon: <Home className="w-5 h-5" /> },
     { href: "/useful-websites", label: "Useful Websites", icon: <Globe className="w-5 h-5" /> },
     { href: "/pricing", label: "Pricing", icon: <span className="w-5 h-5">💲</span> },
-    { href: "/Portifolio/index.html", label: "About", icon: <ExternalLink className="w-5 h-5" />, isExternal: true },
     ...(user ? [
       { href: "/submit", label: "Submit", icon: <Plus className="w-5 h-5" /> },
     ] : []),
@@ -145,11 +146,34 @@ const Navbar = () => {
 
   return (
     <>
+      {/* About Modal */}
+      {aboutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-white w-screen h-screen relative animate-fade-in flex flex-col items-center justify-center p-0">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-3xl font-bold z-10 bg-white/80 rounded-full px-3 py-1 shadow"
+              onClick={() => setAboutModalOpen(false)}
+              aria-label="Close About"
+            >
+              ×
+            </button>
+            <iframe
+              src="/Portifolio/index.html"
+              title="Portfolio"
+              className="w-full h-full border-0"
+              style={{ minHeight: '100vh', minWidth: '100vw' }}
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
       {/* Main Header */}
       <header className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100' 
-          : 'bg-white shadow-sm'
+        aboutModalOpen
+          ? 'bg-black'
+          : isScrolled 
+            ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-100' 
+            : 'bg-white shadow-sm'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center justify-between h-16">
@@ -169,38 +193,30 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-8">
+              {/* Render navLinks except About */}
               {navLinks.map((link, idx) => (
-                link.isExternal ? (
-                  <button
-                    key={link.href}
-                    onClick={() => handleExternalLink(link.href)}
-                    className="relative px-3 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-300 font-medium flex items-center space-x-1 shadow-sm hover:shadow-md animate-fade-in"
-                    style={{ animationDelay: `${idx * 60}ms` }}
-                  >
-                    <span>{link.label}</span>
-                    <ExternalLink className="w-4 h-4" />
-                    {link.badge !== undefined && link.badge > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-semibold">
-                        {link.badge}
-                      </span>
-                    )}
-                  </button>
-                ) : (
-                  <Link 
-                    key={link.href} 
-                    href={link.href} 
-                    className="relative px-3 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-300 font-medium shadow-sm hover:shadow-md animate-fade-in"
-                    style={{ animationDelay: `${idx * 60}ms` }}
-                  >
-                    {link.label}
-                    {link.badge !== undefined && link.badge > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-semibold">
-                        {link.badge}
-                      </span>
-                    )}
-                  </Link>
-                )
+                <Link 
+                  key={link.href} 
+                  href={link.href} 
+                  className="relative px-3 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-300 font-medium shadow-sm hover:shadow-md animate-fade-in"
+                  style={{ animationDelay: `${idx * 60}ms` }}
+                >
+                  {link.label}
+                  {link.badge !== undefined && link.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-semibold">
+                      {link.badge}
+                    </span>
+                  )}
+                </Link>
               ))}
+              {/* About Button */}
+              <button
+                onClick={() => setAboutModalOpen(true)}
+                className="relative px-3 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-300 font-medium flex items-center space-x-1 shadow-sm hover:shadow-md animate-fade-in"
+                style={{ animationDelay: `${navLinks.length * 60}ms` }}
+              >
+                <span>About</span>
+              </button>
             </div>
 
             {/* Desktop User Actions */}
@@ -338,6 +354,13 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
+              {/* About Button for Mobile */}
+              <button
+                onClick={() => { setAboutModalOpen(true); setMobileMenuOpen(false); }}
+                className="block w-full text-left px-4 py-2 text-gray-700 hover:text-primary hover:bg-blue-50 rounded-xl transition-all duration-200 font-medium"
+              >
+                About
+              </button>
             </nav>
 
             {/* User Actions */}
