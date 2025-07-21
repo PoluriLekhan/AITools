@@ -28,12 +28,6 @@ export const usefulWebsite = defineType({
       validation: Rule => Rule.required(),
     }),
     defineField({
-      name: "websiteImage",
-      type: "url",
-      title: "Website Image URL",
-      validation: Rule => Rule.required(),
-    }),
-    defineField({
       name: "pitch",
       type: "text",
       title: "Pitch",

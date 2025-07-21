@@ -5,7 +5,7 @@ import { AUTHOR_BY_GITHUB_ID_QUERY } from "@/sanity/lib/queries";
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, description, category, websiteURL, websiteImage, pitch, authorId: firebaseUid } = await request.json();
+    const { title, description, category, websiteURL, pitch, authorId: firebaseUid } = await request.json();
     
     if (!title || !description || !category || !websiteURL || !firebaseUid) {
       return NextResponse.json({ 
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
       description,
       category,
       websiteURL,
-      websiteImage: websiteImage || "/logo.png",
       pitch: pitch || "",
       status: "pending",
       views: 0,
