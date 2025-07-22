@@ -32,6 +32,20 @@ export const author = defineType({
       type: "text",
     }),
     defineField({
+      name: "plan",
+      title: "Plan",
+      type: "string",
+      options: {
+        list: [
+          { title: "Free", value: "free" },
+          { title: "Basic", value: "basic" },
+          { title: "Premium", value: "premium" },
+        ],
+      },
+      initialValue: "free",
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: "role",
       title: "Role",
       type: "string",

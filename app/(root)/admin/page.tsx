@@ -20,6 +20,8 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
 import { writeClient } from "@/sanity/lib/write-client";
+import axios from "axios";
+import { useSession } from "next-auth/react";
 
 // Define types for User and Blog
 
@@ -29,6 +31,7 @@ type User = {
   email: string;
   isAdmin: boolean;
   role?: string;
+  plan?: string;
 };
 
 type AiTool = {
@@ -91,9 +94,13 @@ export default function AdminPage() {
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImageUrl, setEditImageUrl] = useState<string>("");
   const [editImageUrlInput, setEditImageUrlInput] = useState<string>("");
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
   const isSuperAdmin = users.find(u => u.email === user?.email)?.role === "super-admin";
   // Remove activeTab, Tabs, and Card usage
   // Restore original section stacking and layout
+
+  const { data: session } = useSession();
 
   const fetchUsers = async () => {
     const data = await client.fetch(ALL_AUTHORS_QUERY);
@@ -138,6 +145,18 @@ export default function AdminPage() {
     setUsefulWebsitesLoading(false);
   };
 
+  // Fetch payment history for admin
+  const fetchPayments = async () => {
+    setPaymentsLoading(true);
+    try {
+      const { data } = await axios.get("/api/payment-status", { withCredentials: true });
+      setPayments(data.payments || []);
+    } catch (err) {
+      setPayments([]);
+    }
+    setPaymentsLoading(false);
+  };
+
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -168,6 +187,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isAdmin) fetchUsefulWebsites();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) fetchPayments();
   }, [isAdmin]);
 
 
@@ -611,6 +634,7 @@ export default function AdminPage() {
                   <tr className="bg-gray-50">
                     <th className="p-3 font-medium">Name</th>
                     <th className="p-3 font-medium">Email</th>
+                    <th className="p-3 font-medium">Plan</th>
                     <th className="p-3 font-medium">Admin</th>
                     <th className="p-3 font-medium">Actions</th>
                   </tr>
@@ -620,6 +644,7 @@ export default function AdminPage() {
                     <tr key={u._id} className="border-t hover:bg-blue-50 transition-colors">
                       <td className="p-3">{u.name}</td>
                       <td className="p-3">{u.email}</td>
+                      <td className="p-3">{u.plan ? u.plan.charAt(0).toUpperCase() + u.plan.slice(1) : "Free"}</td>
                       <td className="p-3">{u.isAdmin ? "Yes" : "No"}</td>
                       <td className="p-3 flex flex-wrap gap-2">
                         <button
@@ -635,6 +660,42 @@ export default function AdminPage() {
                           Delete
                         </button>
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        {/* Payment History Section */}
+        <div className="bg-white rounded-lg shadow p-6 mt-6">
+          <h2 className="text-xl font-semibold mb-4 text-purple-600">User Payment History</h2>
+          {paymentsLoading ? (
+            <div className="animate-pulse text-gray-500">Loading payments...</div>
+          ) : payments.length === 0 ? (
+            <div className="text-gray-500">No payments found.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[600px] w-full bg-white rounded-lg shadow text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-3 font-medium">User</th>
+                    <th className="p-3 font-medium">Email</th>
+                    <th className="p-3 font-medium">Plan</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium">Amount</th>
+                    <th className="p-3 font-medium">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((p, idx) => (
+                    <tr key={idx} className="border-t hover:bg-purple-50 transition-colors">
+                      <td className="p-3">{p.user?.name || "-"}</td>
+                      <td className="p-3">{p.user?.email || "-"}</td>
+                      <td className="p-3">{p.plan ? p.plan.charAt(0).toUpperCase() + p.plan.slice(1) : "-"}</td>
+                      <td className="p-3">{p.status}</td>
+                      <td className="p-3">{p.amount ? `₹${(p.amount / 100).toFixed(2)}` : "-"}</td>
+                      <td className="p-3">{p.createdAt ? new Date(p.createdAt).toLocaleString() : "-"}</td>
                     </tr>
                   ))}
                 </tbody>

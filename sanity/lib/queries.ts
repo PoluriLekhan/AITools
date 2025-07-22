@@ -158,6 +158,8 @@ export const AUTHOR_BY_EMAIL_QUERY = defineQuery(`
 }
 `);
 
+export const USER_PLAN_BY_EMAIL_QUERY = `*[_type == "author" && email == $email][0]{ plan }`;
+
 export const AITOOLS_BY_AUTHOR_QUERY =
   defineQuery(`*[_type == "aiTool" && author._ref == $id] | order(_createdAt desc) {
   _id, 

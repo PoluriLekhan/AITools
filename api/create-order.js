@@ -13,10 +13,23 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Validate input
+    const { amount, currency } = req.body;
+    if (!amount || !currency) {
+      return res.status(400).json({ error: "Amount and currency are required" });
+    }
+    if (typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({ error: "Amount must be a positive number" });
+    }
+    if (typeof currency !== 'string') {
+      return res.status(400).json({ error: "Currency must be a string" });
+    }
+
     const razorpay = new Razorpay({ key_id, key_secret });
+    // Razorpay expects amount in the smallest currency unit (e.g., paise for INR)
     const order = await razorpay.orders.create({
-      amount: 100, // Placeholder amount, as the original 'amount' field is removed
-      currency: "INR",
+      amount: amount * 100, // Convert to paise
+      currency,
       receipt: "rcpt_" + Date.now(),
     });
     return res.status(200).json({ orderId: order.id });

@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import AuthProvider from "@/components/AuthProvider";
+import { SessionProvider } from "next-auth/react";
 
 export default function RootLayout({
   children,
@@ -7,9 +8,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
-      <Navbar />
-      {children}
-    </AuthProvider>
+    <SessionProvider>
+      <AuthProvider>
+        <Navbar />
+        {children}
+      </AuthProvider>
+    </SessionProvider>
   );
 }

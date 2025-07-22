@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { client } from "@/sanity/lib/client";
-import { AUTHOR_BY_EMAIL_QUERY, AITOOLS_BY_AUTHOR_QUERY } from "@/sanity/lib/queries";
+import { AUTHOR_BY_EMAIL_QUERY, AITOOLS_BY_AUTHOR_QUERY, USER_PLAN_BY_EMAIL_QUERY } from "@/sanity/lib/queries";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import UserAiTools from "@/components/UserAiTools"; // This is the UserUsefulWebsites component
@@ -73,6 +73,7 @@ const Page = ({ params }: { params: { id: string } }) => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   // Add state for usefulWebsites
   const [usefulWebsites, setUsefulWebsites] = useState<UsefulWebsiteTypeCard[]>([]);
+  const [plan, setPlan] = useState<string | null>(null);
 
   // Fetch user data and AI tools
   const fetchUserData = async () => {
@@ -84,6 +85,9 @@ const Page = ({ params }: { params: { id: string } }) => {
         return;
       }
       setUser(userData);
+      // Fetch plan
+      const planData = await client.fetch(USER_PLAN_BY_EMAIL_QUERY, { email });
+      setPlan(planData?.plan || "free");
 
       // Fetch AI tools for this user
       const toolsData = await client.fetch(AITOOLS_BY_AUTHOR_QUERY, { id: userData._id });
@@ -168,6 +172,14 @@ const Page = ({ params }: { params: { id: string } }) => {
         </div>
       )}
       
+      {/* User Plan Section */}
+      <section className="bg-blue-50 py-4 px-4 rounded-lg shadow mb-6 max-w-2xl mx-auto">
+        <h2 className="text-xl font-bold text-blue-700 mb-2">Your Current Plan</h2>
+        <div className="text-lg font-semibold text-blue-900">
+          {plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : "Free"}
+        </div>
+      </section>
+
       <section className="profile_container">
         <div className="profile_card">
           <div className="profile_title">
