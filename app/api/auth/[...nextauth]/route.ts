@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { Session } from "next-auth";
 
 export const authOptions = {
   providers: [
@@ -9,10 +10,11 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async session({ session }) {
-      // Add isAdmin property based on email (replace with your admin logic)
+    async session({ session }: { session: Session }) {
       const adminEmails = ["admin@example.com"]; // TODO: Replace with your admin emails
-      session.user.isAdmin = adminEmails.includes(session.user.email);
+      if (session.user && typeof session.user.email === "string") {
+        (session.user as typeof session.user & { isAdmin?: boolean }).isAdmin = adminEmails.includes(session.user.email);
+      }
       return session;
     },
   },
