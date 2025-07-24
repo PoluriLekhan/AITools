@@ -22,6 +22,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { writeClient } from "@/sanity/lib/write-client";
 import axios from "axios";
 import { useSession } from "next-auth/react";
+import { X, BadgeCheck, AlertTriangle } from 'lucide-react';
 
 // Define types for User and Blog
 
@@ -102,6 +103,8 @@ export default function AdminPage() {
 
   const { data: session } = useSession();
 
+  // Remove all notification-related state, effects, handlers, and UI from AdminPage.
+
   const fetchUsers = async () => {
     const data = await client.fetch(ALL_AUTHORS_QUERY);
     setUsers(data);
@@ -157,6 +160,24 @@ export default function AdminPage() {
     setPaymentsLoading(false);
   };
 
+  // Add new state for users with purchases and plan filter
+  const [usersWithPurchases, setUsersWithPurchases] = useState<any[]>([]);
+  const [usersWithPurchasesLoading, setUsersWithPurchasesLoading] = useState(true);
+  const [planFilter, setPlanFilter] = useState<string>("All");
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
+
+  // Fetch users with purchases
+  const fetchUsersWithPurchases = async () => {
+    setUsersWithPurchasesLoading(true);
+    try {
+      const { data } = await axios.get("/api/admin/users-with-purchases");
+      setUsersWithPurchases(data.users || []);
+    } catch (err) {
+      setUsersWithPurchases([]);
+    }
+    setUsersWithPurchasesLoading(false);
+  };
+
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -191,6 +212,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (isAdmin) fetchPayments();
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) fetchUsersWithPurchases();
   }, [isAdmin]);
 
 
@@ -590,36 +615,32 @@ export default function AdminPage() {
     return <span className={`px-2 py-1 rounded text-white text-xs ${color}`}>{status}</span>;
   };
 
-  if (loading || !checked) return <div>Loading...</div>;
-  if (!isAdmin) return null;
+  if (loading || !checked) return <div className="py-10 text-center text-lg text-gray-500">Loading...</div>;
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-2xl mx-auto py-10 text-center">
+        <AlertTriangle className="mx-auto text-red-500" size={48} />
+        <h2 className="text-2xl font-bold text-red-600 mt-4">Access Denied</h2>
+        <p className="text-gray-700 mt-2">
+          You do not have admin access. Please log in with an admin account.
+        </p>
+        {user?.email && (
+          <p className="mt-2 text-gray-500">Logged in as: {user.email}</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-4 px-2 sm:px-4">
-      <h1 className="text-3xl font-bold mb-4 text-blue-700">Admin Dashboard</h1>
-      <div className="mb-6 flex flex-col sm:flex-row gap-2">
-        <a
-          href="/admin/bulk-upload"
-          className="inline-block px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 text-center w-full sm:w-auto"
-        >
-          Bulk Upload AI Tools (CSV)
-        </a>
-        <button
-          onClick={() => {
-            setAiToolsLoading(true);
-            setUsefulWebsitesLoading(true);
-            setBlogsLoading(true);
-            setUsersLoading(true);
-            // Refetch all data
-            fetchAiTools();
-            fetchUsefulWebsites();
-            fetchBlogs();
-            fetchUsers();
-          }}
-          className="inline-block px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 text-center w-full sm:w-auto"
-        >
-          Refresh All Data
-        </button>
+      <div className="flex items-center gap-3 mb-4">
+        <BadgeCheck className="text-green-600" />
+        <span className="font-semibold text-green-700">
+          Logged in as: {user?.email} (Admin)
+        </span>
       </div>
+      <h1 className="text-3xl font-bold mb-4 text-blue-700">Admin Dashboard</h1>
       {/* Remove Tabs */}
       <div className="space-y-6">
         {/* Users Section */}
@@ -698,6 +719,84 @@ export default function AdminPage() {
                       <td className="p-3">{p.createdAt ? new Date(p.createdAt).toLocaleString() : "-"}</td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* User Subscription Table Section */}
+        <div className="bg-white rounded-lg shadow p-6 mt-6">
+          <h2 className="text-xl font-semibold mb-4 text-purple-600">User Subscriptions & Purchases</h2>
+          <div className="flex flex-wrap gap-4 mb-4 items-center">
+            <label className="font-medium">Filter by Plan:</label>
+            <select
+              className="border rounded px-2 py-1"
+              value={planFilter}
+              onChange={e => setPlanFilter(e.target.value)}
+            >
+              <option value="All">All</option>
+              <option value="Free">Free</option>
+              <option value="Basic Plan">Basic Plan</option>
+              <option value="Premium Plan">Premium Plan</option>
+            </select>
+            <button
+              className="ml-auto px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+              onClick={() => setSortAsc(s => !s)}
+            >
+              Sort by Plan {sortAsc ? "▲" : "▼"}
+            </button>
+          </div>
+          {usersWithPurchasesLoading ? (
+            <div className="animate-pulse text-gray-500">Loading users...</div>
+          ) : usersWithPurchases.length === 0 ? (
+            <div className="text-gray-500">No users found.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[800px] w-full bg-white rounded-lg shadow text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="p-3 font-medium">Name</th>
+                    <th className="p-3 font-medium">Email</th>
+                    <th className="p-3 font-medium cursor-pointer" onClick={() => setSortAsc(s => !s)}>
+                      Current Plan {sortAsc ? "▲" : "▼"}
+                    </th>
+                    <th className="p-3 font-medium">Purchase History</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersWithPurchases
+                    .filter(u => planFilter === "All" || u.currentPlan === planFilter)
+                    .sort((a, b) => {
+                      if (a.currentPlan === b.currentPlan) return 0;
+                      return sortAsc
+                        ? a.currentPlan.localeCompare(b.currentPlan)
+                        : b.currentPlan.localeCompare(a.currentPlan);
+                    })
+                    .map((u, idx) => (
+                      <tr key={u.id} className="border-t hover:bg-purple-50 transition-colors">
+                        <td className="p-3 font-semibold">{u.name}</td>
+                        <td className="p-3">{u.email}</td>
+                        <td className="p-3">{u.currentPlan}</td>
+                        <td className="p-3">
+                          {u.purchaseHistory.length === 0 ? (
+                            <span className="text-gray-400">No purchases</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {u.purchaseHistory.map((ph: any, i: number) => (
+                                <div key={ph.id || i} className="border-b last:border-b-0 pb-1 mb-1 last:mb-0 last:pb-0">
+                                  <span className="font-medium text-blue-700">{ph.plan}</span>
+                                  <span className="mx-2 text-gray-500">|</span>
+                                  <span className="text-green-700">₹{ph.amount}</span>
+                                  <span className="mx-2 text-gray-500">|</span>
+                                  <span className="text-gray-600">{ph.date ? new Date(ph.date).toLocaleString() : "-"}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>

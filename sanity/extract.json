@@ -492,6 +492,13 @@
         },
         "optional": true
       },
+      "likes": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
+        },
+        "optional": true
+      },
       "status": {
         "type": "objectAttribute",
         "value": {

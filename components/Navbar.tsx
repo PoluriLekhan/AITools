@@ -9,8 +9,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchAuthorByEmail, fetchPendingBlogsCount } from "@/lib/sanity-client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, Bell, ExternalLink, Globe } from "lucide-react";
-// Removed import { Dialog } from "@/components/ui/dialog"; because the module cannot be found
+import { Menu, X, Home, Plus, Shield, LogOut, User, LogIn, ExternalLink, Globe } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from "firebase/firestore";
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -221,13 +222,6 @@ const Navbar = () => {
 
             {/* Mobile Menu Button */}
             <div className="lg:hidden flex items-center space-x-2">
-              {/* Mobile Notification Bell (if user is logged in) */}
-              {user && (
-                <div className="relative">
-                  <Bell className="w-6 h-6 text-gray-700" />
-                </div>
-              )}
-              
               {/* Mobile Menu Toggle */}
               <Button 
                 variant="ghost" 

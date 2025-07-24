@@ -5,14 +5,14 @@ const View = ({ id }: { id: string }) => {
   const [totalViews, setTotalViews] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const incrementViews = async (id: string) => {
+  const incrementViews = async (id: string, currentViews: number) => {
     if (loading || !id) return;
     setLoading(true);
     try {
       await fetch("/api/increment-views", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: id }),
+        body: JSON.stringify({ documentId: id, views: currentViews }),
       });
     } finally {
       setLoading(false);
@@ -31,15 +31,13 @@ const View = ({ id }: { id: string }) => {
         if (response.ok) {
           const data = await response.json();
           setTotalViews(data.views);
-          
           // Increment views
-          incrementViews(id);
+          incrementViews(id, data.views || 0);
         }
       } catch (error) {
         console.error("Error fetching views:", error);
       }
     };
-
     fetchViews();
   }, [id]);
 

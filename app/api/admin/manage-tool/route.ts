@@ -33,18 +33,30 @@ export async function POST(request: NextRequest) {
       adminEmail 
     } = await request.json();
     
-    if (!toolId || !action || !adminEmail) {
+    if (!action) {
+      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
+    }
+    // Only require toolId for actions that need it
+    if (
+      !["getAllUsers"].includes(action) &&
+      !toolId
+    ) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
     }
 
-    // Verify admin status
-    const adminUser = await client.fetch(
-      `*[_type == "author" && email == $email && isAdmin == true][0]`,
-      { email: adminEmail }
-    );
-
-    if (!adminUser) {
-      return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 401 });
+    // Only require admin for actions other than incrementLikes/incrementViews
+    if (action !== "incrementLikes" && action !== "incrementViews") {
+      if (!adminEmail) {
+        return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
+      }
+      // Verify admin status
+      const adminUser = await client.fetch(
+        `*[_type == "author" && email == $email && isAdmin == true][0]`,
+        { email: adminEmail }
+      );
+      if (!adminUser) {
+        return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 401 });
+      }
     }
 
     let updateData: any = {};
@@ -108,6 +120,21 @@ export async function POST(request: NextRequest) {
         );
         updateData = { likes: (currentToolLikes?.likes || 0) + 1 };
         break;
+
+      case "getAllUsers":
+        // Only allow admin
+        if (!adminEmail) {
+          return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
+        }
+        const adminUserForGet = await client.fetch(
+          `*[_type == "author" && email == $email && isAdmin == true][0]`,
+          { email: adminEmail }
+        );
+        if (!adminUserForGet) {
+          return NextResponse.json({ error: "Unauthorized: Admin access required" }, { status: 401 });
+        }
+        const allUsers = await client.fetch(`*[_type == "author"]{ email }`);
+        return NextResponse.json({ success: true, users: allUsers });
 
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });

@@ -90,6 +90,7 @@ export type AiTool = {
   pitch?: string;
   views?: number;
   autoIncrementViews?: boolean;
+  likes?: number;
   status?: "pending" | "approved" | "rejected";
   author?: {
     _ref: string;

@@ -13,6 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import View from "@/components/View";
 import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
 import { ExternalLinkIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import LikeButton from '@/components/LikeButton';
 
 const md = markdownit();
 
@@ -35,6 +39,9 @@ const Page = async ({ params }: { params: { id: string } }) => {
   
   // Deduplicate types to prevent duplicates from showing
   const uniqueTypes = Array.isArray(post.types) ? [...new Set(post.types)] as string[] : [];
+
+  // --- Like Button Logic (Client Component) ---
+  // This will be rendered as a client component below
 
   return (
     <>
@@ -83,9 +90,10 @@ const Page = async ({ params }: { params: { id: string } }) => {
             </div>
           )}
         </div>
-        
-        <div className="mt-8">
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <View id={post._id} />
+          {/* Like Button (Client Component) */}
+          <LikeButton toolId={post._id} initialLikes={post.likes || 0} />
         </div>
       </section>
     </>

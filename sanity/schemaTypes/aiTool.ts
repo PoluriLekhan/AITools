@@ -75,6 +75,12 @@ export const aiTool = defineType({
       initialValue: true,
     }),
     defineField({
+      name: "likes",
+      type: "number",
+      title: "Likes",
+      initialValue: 0,
+    }),
+    defineField({
       name: "status",
       type: "string",
       options: {
