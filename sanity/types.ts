@@ -23,7 +23,6 @@ export type UsefulWebsite = {
   description?: string;
   category?: string;
   websiteURL?: string;
-  websiteImage?: string;
   pitch?: string;
   views?: number;
   status?: "pending" | "approved" | "rejected";
@@ -112,6 +111,7 @@ export type Author = {
   email?: string;
   image?: string;
   bio?: string;
+  plan?: "free" | "basic" | "premium";
   role?: "user" | "admin" | "super-admin";
   isAdmin?: boolean;
 };

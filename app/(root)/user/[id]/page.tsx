@@ -12,6 +12,7 @@ import { AiToolCardSkeleton } from "@/components/AiToolCard";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchUsefulWebsitesByAuthor } from "@/lib/sanity-client";
+import PhoneNumberUpdater from "@/components/PhoneNumberUpdater";
 
 interface User {
   _id: string;
@@ -157,6 +158,9 @@ const Page = ({ params }: { params: { id: string } }) => {
   // Filter tools by status
   const pendingTools = aiTools.filter(tool => tool.status === "pending");
   const approvedTools = aiTools.filter(tool => tool.status === "approved");
+
+  // After user info is loaded and if currentUser is viewing their own profile
+  const isOwnProfile = currentUser && user && currentUser.email === user.email;
 
   return (
     <>
@@ -385,6 +389,13 @@ const Page = ({ params }: { params: { id: string } }) => {
           )}
         </div>
       </section>
+      {isOwnProfile && (
+        <div style={{ margin: '2rem 0' }}>
+          <h2>Phone Number</h2>
+          <p>Current: {currentUser?.phoneNumber || 'Not set'}</p>
+          <PhoneNumberUpdater />
+        </div>
+      )}
     </>
   );
 };

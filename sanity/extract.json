@@ -62,13 +62,6 @@
         },
         "optional": true
       },
-      "websiteImage": {
-        "type": "objectAttribute",
-        "value": {
-          "type": "string"
-        },
-        "optional": true
-      },
       "pitch": {
         "type": "objectAttribute",
         "value": {
@@ -626,6 +619,27 @@
         "type": "objectAttribute",
         "value": {
           "type": "string"
+        },
+        "optional": true
+      },
+      "plan": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "union",
+          "of": [
+            {
+              "type": "string",
+              "value": "free"
+            },
+            {
+              "type": "string",
+              "value": "basic"
+            },
+            {
+              "type": "string",
+              "value": "premium"
+            }
+          ]
         },
         "optional": true
       },

@@ -2,16 +2,23 @@
 
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { useAuth } from "@/components/AuthProvider";
 
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
 
-const handleRazorpay = async (plan, setLoading, planKey) => {
+const PLAN_DETAILS = {
+  Basic: { amount: 49, label: "Basic" },
+  Premium: { amount: 249, label: "Premium" },
+};
+
+const handleRazorpay = async (planKey, setLoading, user) => {
   setLoading(prev => ({ ...prev, [planKey]: true }));
   try {
+    const plan = PLAN_DETAILS[planKey];
     const res = await fetch("/api/create-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ amount: plan.amount, currency: "INR" }),
     });
     const data = await res.json();
     if (!data.orderId) throw new Error("Order creation failed");
@@ -25,7 +32,7 @@ const handleRazorpay = async (plan, setLoading, planKey) => {
       const options = {
         key: RAZORPAY_KEY,
         currency: "INR",
-        name: plan + " Plan",
+        name: plan.label + " Plan",
         description: "Lekhan Studio AI Plan",
         image: "/logo.png",
         order_id: data.orderId,
@@ -33,9 +40,9 @@ const handleRazorpay = async (plan, setLoading, planKey) => {
           alert("Payment Successful!");
         },
         prefill: {
-          name: "Test User",
-          email: "test@example.com",
-          contact: "9999999999",
+          name: user?.displayName || undefined,
+          email: user?.email || undefined,
+          ...(user?.phoneNumber ? { contact: user.phoneNumber } : {}),
         },
         theme: {
           color: "#0d6efd",
@@ -63,6 +70,7 @@ const handleRazorpay = async (plan, setLoading, planKey) => {
 
 const Pricing = () => {
   const [loading, setLoading] = useState({ basic: false, premium: false });
+  const { user } = useAuth();
   return (
     <section className="relative z-10 overflow-hidden bg-gradient-to-br from-white via-blue-50 to-blue-100 pb-12 pt-20 lg:pb-[90px] lg:pt-[120px] animate-fade-in">
       <div className="container mx-auto px-4">
@@ -95,7 +103,7 @@ const Pricing = () => {
             subscription="month"
             description="Ideal for personal use and light projects."
             buttonText={loading.basic ? "Processing..." : "Buy Now"}
-            onClick={() => handleRazorpay('Basic', setLoading, 'basic')}
+            onClick={() => handleRazorpay('Basic', setLoading, user)}
             features={[
               "All Free Plan Features",
               "Early Access to New Tools",
@@ -111,7 +119,7 @@ const Pricing = () => {
             subscription="month"
             description="Perfect for professionals and heavy AI users."
             buttonText={loading.premium ? "Processing..." : "Buy Now"}
-            onClick={() => handleRazorpay('Premium', setLoading, 'premium')}
+            onClick={() => handleRazorpay('Premium', setLoading, user)}
             features={[
               "All Basic Plan Features",
               "Unlimited Access to All Tools",

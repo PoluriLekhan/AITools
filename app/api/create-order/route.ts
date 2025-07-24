@@ -3,14 +3,6 @@ import Razorpay from "razorpay";
 
 export async function POST(request: NextRequest) {
   try {
-    // Remove amount extraction and validation
-    // const body = await request.json();
-    // const { amount } = body;
-    // if (!amount || typeof amount !== "number") {
-    //   console.error("Amount is required and must be a number", { amount });
-    //   return NextResponse.json({ error: "Amount is required and must be a number" }, { status: 400 });
-    // }
-
     const key_id = process.env.RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
     if (!key_id || !key_secret) {
@@ -18,16 +10,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Razorpay keys not set in environment" }, { status: 500 });
     }
 
-    // Remove Razorpay order creation since amount is not provided
-    // const razorpay = new Razorpay({ key_id, key_secret });
-    // const order = await razorpay.orders.create({
-    //   amount: amount * 100, // amount in paise
-    //   currency: "INR",
-    //   receipt: "rcpt_" + Date.now(),
-    // });
-    // console.log("Razorpay order created", order);
-    // return NextResponse.json({ orderId: order.id });
-    return NextResponse.json({ message: "Order creation endpoint no longer requires amount." });
+    // Parse amount and currency from request body, fallback to defaults
+    let amount = 100; // default amount in INR
+    let currency = "INR";
+    try {
+      const body = await request.json();
+      if (body.amount && typeof body.amount === "number") amount = body.amount;
+      if (body.currency && typeof body.currency === "string") currency = body.currency;
+    } catch (e) {
+      // If parsing fails, use defaults
+    }
+
+    const razorpay = new Razorpay({ key_id, key_secret });
+    const order = await razorpay.orders.create({
+      amount: amount * 100, // amount in paise
+      currency,
+      receipt: "rcpt_" + Date.now(),
+    });
+    return NextResponse.json({ orderId: order.id });
   } catch (error) {
     console.error("Error in /api/create-order:", error);
     return NextResponse.json({ error: "Order creation failed" }, { status: 500 });
