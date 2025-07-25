@@ -36,13 +36,18 @@ const handleRazorpay = async (planKey, setLoading, user) => {
         description: "Lekhan Studio AI Plan",
         image: "/logo.png",
         order_id: data.orderId,
-        handler: function (response) {
-          alert("Payment Successful!");
+        method: {
+          upi: true,
+          card: true,
+          netbanking: true,
+          wallet: false,
+          emi: false,
+          paylater: false,
         },
         prefill: {
           name: user?.displayName || undefined,
           email: user?.email || undefined,
-          ...(user?.phoneNumber ? { contact: user.phoneNumber } : {}),
+          contact: user?.phoneNumber || "", // Always use user's phone if available
         },
         theme: {
           color: "#0d6efd",
@@ -52,11 +57,73 @@ const handleRazorpay = async (planKey, setLoading, user) => {
             alert("Payment Failed or Cancelled");
           },
         },
+        handler: async function (response) {
+          // Log payment details
+          console.log("Razorpay Payment Success", response);
+          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
+          // Call backend to verify payment
+          try {
+            const verifyRes = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id,
+                razorpay_payment_id,
+                razorpay_signature,
+                user: {
+                  email: user?.email,
+                  displayName: user?.displayName,
+                  phoneNumber: user?.phoneNumber,
+                  uid: user?.uid,
+                },
+                plan: plan.label,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.status === "success") {
+              alert("Payment Successful! Your plan is now active.");
+            } else {
+              alert("Payment verification failed. Please contact support.");
+            }
+          } catch (err) {
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: "UPI",
+                instruments: [
+                  { method: "upi" },
+                  { method: "upi", apps: ["phonepe", "google_pay"] },
+                ],
+              },
+              card: {
+                name: "Cards",
+                instruments: [
+                  { method: "card" },
+                ],
+              },
+              netbanking: {
+                name: "Netbanking",
+                instruments: [
+                  { method: "netbanking" },
+                ],
+              },
+            },
+            sequence: ["block.upi", "block.card", "block.netbanking"],
+            preferences: {
+              show_default_blocks: false,
+            },
+          },
+        },
       };
       // eslint-disable-next-line no-undef
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function () {
+      rzp.on('payment.failed', function (response) {
         alert("Payment Failed or Cancelled");
+        console.error("Razorpay Payment Failed", response);
       });
       rzp.open();
     };
