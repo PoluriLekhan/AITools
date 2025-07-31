@@ -14,9 +14,10 @@ import View from "@/components/View";
 import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
 import { ExternalLinkIcon } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Heart } from "lucide-react";
+import { Heart, EyeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LikeButton from '@/components/LikeButton';
+import Likes from "@/components/Likes";
 
 const md = markdownit();
 
@@ -90,10 +91,12 @@ const Page = async ({ params }: { params: { id: string } }) => {
             </div>
           )}
         </div>
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <View id={post._id} />
-          {/* Like Button (Client Component) */}
-          <LikeButton toolId={post._id} initialLikes={post.likes || 0} />
+        <div className="mt-8 flex flex-row gap-6 items-center justify-center">
+          <div className="flex items-center gap-2 text-lg">
+            <EyeIcon className="w-6 h-6 text-blue-500" />
+            <View id={post._id} />
+          </div>
+          <Likes id={post._id} />
         </div>
       </section>
     </>

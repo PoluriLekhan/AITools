@@ -25,6 +25,7 @@ export type UsefulWebsite = {
   websiteURL?: string;
   pitch?: string;
   views?: number;
+  isApproved?: boolean;
   status?: "pending" | "approved" | "rejected";
   author?: {
     _ref: string;

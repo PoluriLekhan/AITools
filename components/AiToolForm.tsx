@@ -31,6 +31,10 @@ const AiToolForm = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
   const [imageUrlInput, setImageUrlInput] = useState<string>("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
+  const [website, setWebsite] = useState("");
 
   interface AiToolFormState {
     error: string;
@@ -307,6 +311,19 @@ const AiToolForm = () => {
     const result = await handleFormSubmit(formData);
     setState(result);
     setIsPending(false);
+    // Reset form fields and errors after successful submission
+    if (result.status === "SUCCESS") {
+      setErrors({});
+      setPitch("");
+      setCustomType("");
+      setShowCustomInput(false);
+      setIsAddingCustom(false);
+      setSelectedTypes([]);
+      setImageFile(null);
+      setImageUrl("");
+      setImageUrlInput("");
+      // Add any other fields that need resetting
+    }
   };
 
   return (
@@ -327,6 +344,8 @@ const AiToolForm = () => {
           className="ai-tool-form_input"
           required
           placeholder="AI Tool Name"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
         />
 
         {errors.title && <p className="ai-tool-form_error">{errors.title}</p>}
@@ -342,6 +361,8 @@ const AiToolForm = () => {
           className="ai-tool-form_textarea"
           required
           placeholder="AI Tool Description"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
         />
 
         {errors.description && (
@@ -359,6 +380,8 @@ const AiToolForm = () => {
           className="ai-tool-form_input"
           required
           placeholder="Enter category (e.g., Video, Text, Image, etc.)"
+          value={category}
+          onChange={e => setCategory(e.target.value)}
         />
 
         {errors.category && (
@@ -499,6 +522,8 @@ const AiToolForm = () => {
           className="ai-tool-form_input"
           required
           placeholder="AI Tool Website URL"
+          value={website}
+          onChange={e => setWebsite(e.target.value)}
         />
         {errors.website && <p className="ai-tool-form_error">{errors.website}</p>}
       </div>

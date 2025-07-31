@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   }
   try {
     await connectDB();
-    const payments = await Payment.find({}).sort({ createdAt: -1 });
+    const payments = await Payment.find({ status: "success" }).sort({ createdAt: -1 });
     return res.status(200).json({ payments });
   } catch (err) {
     console.error(err);

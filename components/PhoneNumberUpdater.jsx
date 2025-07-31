@@ -38,6 +38,10 @@ export default function PhoneNumberUpdater() {
     try {
       await linkWithCredential(user, credential);
       setMessage("Phone number linked successfully! Please refresh the page to see the update.");
+      // Reset form fields after successful update
+      setPhone("");
+      setCode("");
+      setConfirmationResult(null);
     } catch (err) {
       setMessage("Error linking phone: " + err.message);
     } finally {

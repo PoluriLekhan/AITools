@@ -12,6 +12,12 @@ export default function LikeButton({ toolId, initialLikes }: { toolId: string; i
     setLikes(initialLikes);
   }, [initialLikes]);
 
+  useEffect(() => {
+    // Check localStorage for like
+    const likedTools = JSON.parse(localStorage.getItem("likedTools") || "{}");
+    setLiked(!!likedTools[toolId]);
+  }, [toolId]);
+
   const handleLike = async () => {
     if (loading || liked) return;
     setLoading(true);
@@ -29,6 +35,10 @@ export default function LikeButton({ toolId, initialLikes }: { toolId: string; i
       if (res.ok) {
         setLikes(likes + 1);
         setLiked(true);
+        // Save to localStorage
+        const likedTools = JSON.parse(localStorage.getItem("likedTools") || "{}")
+        likedTools[toolId] = true;
+        localStorage.setItem("likedTools", JSON.stringify(likedTools));
       }
     } finally {
       setLoading(false);

@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ orderId: order.id });
   } catch (error) {
     console.error("Error in /api/create-order:", error);
-    return NextResponse.json({ error: "Order creation failed" }, { status: 500 });
+    // Return a more detailed error message for debugging (do not leak sensitive info)
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Order creation failed" }, { status: 500 });
   }
 }
 

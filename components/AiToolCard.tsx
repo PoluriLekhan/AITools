@@ -1,6 +1,6 @@
 "use client";
 import { cn, formatDate } from "@/lib/utils";
-import { EyeIcon } from "lucide-react";
+import { EyeIcon, Heart } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import Likes from "@/components/Likes";
 
 export type AiToolTypeCard = Omit<AiTool, "author"> & { author?: Author };
 
@@ -58,11 +59,12 @@ const AiToolCard = ({ post }: AiToolCardProps) => {
     <li className="ai-tool-card group">
       <div className="flex-between">
         <p className="ai-tool_card_date">{formatDate(_createdAt)}</p>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <div className="flex gap-1.5 items-center">
             <EyeIcon className="size-5 text-primary" />
             <span className="text-14-medium">{views || 0}</span>
           </div>
+          <Likes id={_id} />
         </div>
       </div>
 
@@ -163,6 +165,10 @@ const AiToolCard = ({ post }: AiToolCardProps) => {
           </div>
         )}
       </Link>
+
+      <div className="mt-4 flex justify-end">
+        {/* Removed LikeButton component */}
+      </div>
 
       <div className="flex-between gap-3 mt-5">
         <Link href={`/?query=${category?.toLowerCase()}`}>

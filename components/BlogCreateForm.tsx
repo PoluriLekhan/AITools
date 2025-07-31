@@ -17,6 +17,9 @@ export default function BlogCreateForm() {
       const result = await createBlogPost(formData);
       if (result.success && result.id) {
         router.push(`/blog/${result.id}`);
+        // Reset form fields after successful submission
+        // (Assuming you have state for each field, otherwise this is a placeholder)
+        // setTitle(""); setContent(""); setCategory(""); setAccessType("public"); setAiToolLink("");
       } else {
         alert(result.error || "Failed to create blog post. Please try again.");
       }

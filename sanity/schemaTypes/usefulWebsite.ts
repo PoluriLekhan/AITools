@@ -40,6 +40,13 @@ export const usefulWebsite = defineType({
       initialValue: 0,
     }),
     defineField({
+      name: "isApproved",
+      type: "boolean",
+      title: "Approved",
+      initialValue: false,
+      description: "Whether this website has been approved by an admin",
+    }),
+    defineField({
       name: "status",
       type: "string",
       options: {

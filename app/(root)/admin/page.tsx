@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, Suspense, lazy } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { client } from "@/sanity/lib/client";
@@ -15,17 +15,19 @@ import {
   updateBlogStatus,
   deleteBlog
 } from "@/lib/actions";
-import { useRef } from "react";
-import { useMemo } from "react";
-import { Card } from "@/components/ui/card";
-import { Tabs } from "@/components/ui/tabs";
-import { writeClient } from "@/sanity/lib/write-client";
 import axios from "axios";
 import { useSession } from "next-auth/react";
-import { X, BadgeCheck, AlertTriangle } from 'lucide-react';
+import { AdminErrorBoundary } from "@/components/admin/AdminErrorBoundary";
 
-// Define types for User and Blog
+// Lazy load components
+const AdminLoading = lazy(() => import("@/components/admin/AdminLoading"));
+const AdminAccessDenied = lazy(() => import("@/components/admin/AdminAccessDenied"));
+const AdminHeader = lazy(() => import("@/components/admin/AdminHeader"));
+const AdminSection = lazy(() => import("@/components/admin/AdminSection"));
+const AdminTable = lazy(() => import("@/components/admin/AdminTable"));
+const AdminButton = lazy(() => import("@/components/admin/AdminButton"));
 
+// Types
 type User = {
   _id: string;
   name: string;
@@ -49,7 +51,6 @@ type AiTool = {
   status: string;
   views?: number;
   likes?: number;
-
   autoIncrementViews?: boolean;
   autoIncrementLikes?: boolean;
   author?: { name: string };
@@ -67,106 +68,130 @@ type Blog = {
   aiToolLink: string;
 };
 
-
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { data: session } = useSession();
+  
+  // State management
   const [isAdmin, setIsAdmin] = useState(false);
   const [checked, setChecked] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [aiTools, setAiTools] = useState<AiTool[]>([]);
   const [aiToolsLoading, setAiToolsLoading] = useState(true);
-  const [editAiTool, setEditAiTool] = useState<AiTool | null>(null);
-  const [editForm, setEditForm] = useState<Partial<AiTool> | null>(null);
-  const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
-  const [filterAuthor, setFilterAuthor] = useState("");
-  const [detailsAiTool, setDetailsAiTool] = useState<AiTool | null>(null);
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [blogsLoading, setBlogsLoading] = useState(true);
-  const [selectedBlogRequests, setSelectedBlogRequests] = useState<string[]>([]);
   const [usefulWebsites, setUsefulWebsites] = useState<any[]>([]);
   const [usefulWebsitesLoading, setUsefulWebsitesLoading] = useState(true);
-  const [selectedUsefulWebsiteRequests, setSelectedUsefulWebsiteRequests] = useState<string[]>([]);
-  const [editUsefulWebsite, setEditUsefulWebsite] = useState<any | null>(null);
-  const [editUsefulWebsiteForm, setEditUsefulWebsiteForm] = useState<Partial<any>>({});
-  const [editImageFile, setEditImageFile] = useState<File | null>(null);
-  const [editImageUrl, setEditImageUrl] = useState<string>("");
-  const [editImageUrlInput, setEditImageUrlInput] = useState<string>("");
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
-  const isSuperAdmin = users.find(u => u.email === user?.email)?.role === "super-admin";
-  // Remove activeTab, Tabs, and Card usage
-  // Restore original section stacking and layout
+  const [paymentsError, setPaymentsError] = useState("");
+  const [usersWithPurchases, setUsersWithPurchases] = useState<any[]>([]);
+  const [usersWithPurchasesLoading, setUsersWithPurchasesLoading] = useState(true);
+  const [authorFetchError, setAuthorFetchError] = useState<string | null>(null);
 
-  const { data: session } = useSession();
+  // Check admin status
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user?.email) {
+        try {
+          const author = await client.fetch(AUTHOR_BY_EMAIL_QUERY, { email: user.email });
+          const isAdminUser = !!author?.isAdmin;
+          setIsAdmin(isAdminUser);
+        } catch (err) {
+          setAuthorFetchError(String(err));
+        }
+      }
+      setChecked(true);
+    };
+    
+    if (!loading) {
+      checkAdmin();
+    }
+  }, [user, loading]);
 
-  // Remove all notification-related state, effects, handlers, and UI from AdminPage.
+  // Redirect if not admin
+  useEffect(() => {
+    if (checked && !isAdmin) {
+      router.replace("/");
+    }
+  }, [checked, isAdmin, router]);
 
+  // Fetch data when admin is confirmed
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+      fetchAiTools();
+      fetchBlogs();
+      fetchUsefulWebsites();
+      fetchPayments();
+      fetchUsersWithPurchases();
+    }
+  }, [isAdmin]);
+
+  // Data fetching functions
   const fetchUsers = async () => {
-    const data = await client.fetch(ALL_AUTHORS_QUERY);
-    setUsers(data);
-    setUsersLoading(false);
+    try {
+      const data = await client.fetch(ALL_AUTHORS_QUERY);
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
   };
 
   const fetchAiTools = async () => {
-    const data = await client.fetch(ALL_AITOOLS_ADMIN_QUERY);
-    setAiTools(data);
-    setAiToolsLoading(false);
+    try {
+      const data = await client.fetch(ALL_AITOOLS_ADMIN_QUERY);
+      setAiTools(data);
+    } catch (error) {
+      console.error('Error fetching AI tools:', error);
+    } finally {
+      setAiToolsLoading(false);
+    }
   };
 
   const fetchBlogs = async () => {
-    const data = await client.fetch(`*[_type == "blog"]{ _id, title, content, coverImage, category, accessType, status, aiToolLink, author->{name} }`);
-    setBlogs(data);
-    setBlogsLoading(false);
+    try {
+      const data = await client.fetch(`*[_type == "blog"]{ _id, title, content, coverImage, category, accessType, status, aiToolLink, author->{name} }`);
+      setBlogs(data);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+    } finally {
+      setBlogsLoading(false);
+    }
   };
 
   const fetchUsefulWebsites = async () => {
-    const data = await client.fetch(`*[_type == "usefulWebsite"] | order(_createdAt desc) {
-      _id,
-      title,
-      description,
-      category,
-      websiteURL,
-      websiteImage,
-      pitch,
-      status,
-      views,
-      likes,
-
-      autoIncrementViews,
-      autoIncrementLikes,
-      author -> {
-        _id,
-        name,
-        email
-      }
-    }`);
-    setUsefulWebsites(data);
-    setUsefulWebsitesLoading(false);
+    try {
+      const data = await client.fetch(`*[_type == "usefulWebsite"] | order(_createdAt desc) {
+        _id, title, description, category, websiteURL, websiteImage, pitch, status, isApproved, views, likes,
+        autoIncrementViews, autoIncrementLikes, author -> { _id, name, email }
+      }`);
+      setUsefulWebsites(data);
+    } catch (error) {
+      console.error('Error fetching useful websites:', error);
+    } finally {
+      setUsefulWebsitesLoading(false);
+    }
   };
 
-  // Fetch payment history for admin
   const fetchPayments = async () => {
     setPaymentsLoading(true);
+    setPaymentsError("");
     try {
-      const { data } = await axios.get("/api/payment-status", { withCredentials: true });
+      const { data } = await axios.get("/api/payment-status", { withCredentials: true, timeout: 15000 });
       setPayments(data.payments || []);
     } catch (err) {
       setPayments([]);
+      setPaymentsError("Failed to load payments. Please check your connection or server logs.");
+    } finally {
+      setPaymentsLoading(false);
     }
-    setPaymentsLoading(false);
   };
 
-  // Add new state for users with purchases and plan filter
-  const [usersWithPurchases, setUsersWithPurchases] = useState<any[]>([]);
-  const [usersWithPurchasesLoading, setUsersWithPurchasesLoading] = useState(true);
-  const [planFilter, setPlanFilter] = useState<string>("All");
-  const [sortAsc, setSortAsc] = useState<boolean>(true);
-
-  // Fetch users with purchases
   const fetchUsersWithPurchases = async () => {
     setUsersWithPurchasesLoading(true);
     try {
@@ -174,51 +199,12 @@ export default function AdminPage() {
       setUsersWithPurchases(data.users || []);
     } catch (err) {
       setUsersWithPurchases([]);
+    } finally {
+      setUsersWithPurchasesLoading(false);
     }
-    setUsersWithPurchasesLoading(false);
   };
 
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (user?.email) {
-        const author = await client.fetch(AUTHOR_BY_EMAIL_QUERY, { email: user.email });
-        setIsAdmin(!!author?.isAdmin);
-      }
-      setChecked(true);
-    };
-    if (!loading) checkAdmin();
-  }, [user, loading]);
-
-  useEffect(() => {
-    if (checked && !isAdmin) router.replace("/");
-  }, [checked, isAdmin, router]);
-
-  useEffect(() => {
-    if (isAdmin) fetchUsers();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (isAdmin) fetchAiTools();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (isAdmin) fetchBlogs();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (isAdmin) fetchUsefulWebsites();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (isAdmin) fetchPayments();
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (isAdmin) fetchUsersWithPurchases();
-  }, [isAdmin]);
-
-
+  // Action handlers
   const handleToggleAdmin = async (userId: string, current: boolean) => {
     const result = await toggleUserAdmin(userId, current);
     if (result.success) {
@@ -239,90 +225,8 @@ export default function AdminPage() {
     if (result && result.success) {
       setUsers(users => users.filter(u => u._id !== userId));
       alert("User deleted successfully.");
-    } else if (result && result.error === "REFERENCED") {
-      alert(
-        result.message +
-        (result.referencingIDs && result.referencingIDs.length
-          ? `\nReferencing document IDs: ${result.referencingIDs.join(", ")}`
-          : "")
-      );
     } else {
       alert("Failed to delete user.");
-    }
-  };
-
-  const handleDeleteAiTool = async (aiToolId: string) => {
-    if (!window.confirm("Are you sure you want to delete this AI Tool? This cannot be undone.")) return;
-    
-    const result = await deleteAiTool(aiToolId);
-    if (result.success) {
-      setAiTools(aiTools => aiTools.filter(a => a._id !== aiToolId));
-      alert("AI Tool deleted successfully.");
-    } else {
-      alert("Failed to delete AI Tool.");
-    }
-  };
-
-  const handleEditAiTool = (aiTool: AiTool) => {
-    setEditAiTool(aiTool);
-    setEditForm({ ...aiTool });
-    setEditImageFile(null);
-    setEditImageUrl("");
-    setEditImageUrlInput("");
-  };
-
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    if (e.target.name === "types") {
-      // Handle types as comma-separated string
-      const typesArray = e.target.value.split(",").map(t => t.trim()).filter(t => t);
-      setEditForm({ ...editForm, [e.target.name]: typesArray });
-    } else {
-      setEditForm({ ...editForm, [e.target.name]: e.target.value });
-    }
-  };
-
-  // Handle image upload to Sanity for edit modal
-  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setEditImageFile(file);
-    // Upload to Sanity
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("_type", "image");
-    const res = await fetch("/api/sanity-upload", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await res.json();
-    if (data.url) setEditImageUrl(data.url);
-  };
-
-  const handleEditFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editAiTool || !editForm) return;
-    
-    const toolImageToUpdate = editImageUrl || editImageUrlInput || editForm.toolImage;
-
-    const result = await updateAiTool(editAiTool._id, {
-      title: editForm.title,
-      description: editForm.description,
-      coverImage: editForm.coverImage,
-      category: editForm.category,
-      subCategory: editForm.subCategory,
-      toolWebsiteURL: editForm.toolWebsiteURL,
-      toolImage: toolImageToUpdate,
-      pitch: editForm.pitch,
-      types: editForm.types,
-    });
-    
-    if (result.success) {
-      setAiTools(aiTools => aiTools.map(a => a._id === editAiTool._id ? { ...a, ...editForm } : a));
-      setEditAiTool(null);
-      setEditForm(null);
-      alert("AI Tool updated successfully.");
-    } else {
-      alert("Failed to update AI Tool.");
     }
   };
 
@@ -337,6 +241,18 @@ export default function AdminPage() {
     const result = await updateAiToolStatus(aiToolId, "rejected");
     if (result.success) {
       setAiTools(aiTools => aiTools.map(a => a._id === aiToolId ? { ...a, status: "rejected" } : a));
+    }
+  };
+
+  const handleDeleteAiTool = async (aiToolId: string) => {
+    if (!window.confirm("Are you sure you want to delete this AI Tool? This cannot be undone.")) return;
+    
+    const result = await deleteAiTool(aiToolId);
+    if (result.success) {
+      setAiTools(aiTools => aiTools.filter(a => a._id !== aiToolId));
+      alert("AI Tool deleted successfully.");
+    } else {
+      alert("Failed to delete AI Tool.");
     }
   };
 
@@ -366,67 +282,6 @@ export default function AdminPage() {
     }
   };
 
-
-  const filteredAiTools = useMemo(() => {
-    return aiTools.filter(a =>
-      (a.title?.toLowerCase().includes(search.toLowerCase()) || !search) &&
-      (a.category === filterCategory || !filterCategory) &&
-      (a.author?.name === filterAuthor || !filterAuthor)
-    );
-  }, [aiTools, search, filterCategory, filterAuthor]);
-
-  const filteredBlogs = useMemo(() => {
-    return blogs.filter(b =>
-      (b.title?.toLowerCase().includes(search.toLowerCase()) || !search) &&
-      (b.category === filterCategory || !filterCategory) &&
-      (b.author?.name === filterAuthor || !filterAuthor)
-    );
-  }, [blogs, search, filterCategory, filterAuthor]);
-
-
-  const handleSelectRequest = (aiToolId: string) => {
-    setSelectedRequests(selected =>
-      selected.includes(aiToolId)
-        ? selected.filter(id => id !== aiToolId)
-        : [...selected, aiToolId]
-    );
-  };
-
-  const handleBulkApprove = async () => {
-    for (const id of selectedRequests) {
-      await handleApproveAiTool(id);
-    }
-    setSelectedRequests([]);
-  };
-  const handleBulkReject = async () => {
-    for (const id of selectedRequests) {
-      await handleRejectAiTool(id);
-    }
-    setSelectedRequests([]);
-  };
-
-  const handleSelectBlogRequest = (blogId: string) => {
-    setSelectedBlogRequests(selected =>
-      selected.includes(blogId)
-        ? selected.filter(id => id !== blogId)
-        : [...selected, blogId]
-    );
-  };
-
-  const handleBulkApproveBlogs = async () => {
-    for (const id of selectedBlogRequests) {
-      await handleApproveBlog(id);
-    }
-    setSelectedBlogRequests([]);
-  };
-
-  const handleBulkRejectBlogs = async () => {
-    for (const id of selectedBlogRequests) {
-      await handleRejectBlog(id);
-    }
-    setSelectedBlogRequests([]);
-  };
-
   const handleApproveUsefulWebsite = async (websiteId: string) => {
     try {
       const response = await fetch("/api/admin/manage-tool", {
@@ -434,28 +289,20 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           toolId: websiteId,
-          action: "updateStatus",
-          status: "approved",
+          action: "update",
           documentType: "usefulWebsite",
-          adminEmail: user?.email
+          updates: { isApproved: true, status: "approved" },
+          adminEmail: user?.email,
         }),
       });
-
       if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setUsefulWebsites(usefulWebsites => usefulWebsites.map(w => w._id === websiteId ? { ...w, status: "approved" } : w));
-          alert("Useful website approved successfully");
-        } else {
-          alert("Failed to approve useful website: " + (result.error || "Unknown error"));
-        }
+        setUsefulWebsites(usefulWebsites => usefulWebsites.map(w => w._id === websiteId ? { ...w, isApproved: true, status: "approved" } : w));
       } else {
-        const errorData = await response.json();
-        alert("Failed to approve useful website: " + (errorData.error || "Server error"));
+        alert("Failed to approve useful website.");
       }
     } catch (error) {
       console.error("Error approving useful website:", error);
-      alert("Failed to approve useful website");
+      alert("Failed to approve useful website.");
     }
   };
 
@@ -472,22 +319,14 @@ export default function AdminPage() {
           adminEmail: user?.email
         }),
       });
-
       if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setUsefulWebsites(usefulWebsites => usefulWebsites.map(w => w._id === websiteId ? { ...w, status: "rejected" } : w));
-          alert("Useful website rejected successfully");
-        } else {
-          alert("Failed to reject useful website: " + (result.error || "Unknown error"));
-        }
+        setUsefulWebsites(usefulWebsites => usefulWebsites.map(w => w._id === websiteId ? { ...w, status: "rejected" } : w));
       } else {
-        const errorData = await response.json();
-        alert("Failed to reject useful website: " + (errorData.error || "Server error"));
+        alert("Failed to reject useful website.");
       }
     } catch (error) {
       console.error("Error rejecting useful website:", error);
-      alert("Failed to reject useful website");
+      alert("Failed to reject useful website.");
     }
   };
 
@@ -505,7 +344,6 @@ export default function AdminPage() {
           adminEmail: user?.email
         }),
       });
-
       if (response.ok) {
         setUsefulWebsites(usefulWebsites => usefulWebsites.filter(w => w._id !== websiteId));
         alert("Useful website deleted successfully.");
@@ -518,95 +356,7 @@ export default function AdminPage() {
     }
   };
 
-  const handleEditUsefulWebsite = (website: any) => {
-    setEditUsefulWebsite(website);
-    setEditUsefulWebsiteForm({ ...website });
-  };
-
-  const handleEditUsefulWebsiteFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setEditUsefulWebsiteForm({ ...editUsefulWebsiteForm, [e.target.name]: e.target.value });
-  };
-
-  const handleEditUsefulWebsiteFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editUsefulWebsiteForm || !editUsefulWebsite) return;
-
-    try {
-      const response = await fetch("/api/admin/manage-tool", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          toolId: editUsefulWebsite._id,
-          action: "update",
-          documentType: "usefulWebsite",
-          updates: {
-            title: editUsefulWebsiteForm.title || "",
-            description: editUsefulWebsiteForm.description || "",
-            category: editUsefulWebsiteForm.category || "",
-            websiteURL: editUsefulWebsiteForm.websiteURL || "",
-            pitch: editUsefulWebsiteForm.pitch || "",
-          },
-          adminEmail: user?.email
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setUsefulWebsites(websites => websites.map(website => 
-          website._id === editUsefulWebsite._id 
-            ? { ...website, ...editUsefulWebsiteForm }
-            : website
-        ));
-        setEditUsefulWebsite(null);
-        setEditUsefulWebsiteForm({});
-        alert("Useful Website updated successfully!");
-      } else {
-        const error = await response.json();
-        alert(error.error || "Failed to update Useful Website.");
-      }
-    } catch (error) {
-      console.error("Error updating Useful Website:", error);
-      alert("Failed to update Useful Website.");
-    }
-  };
-
-  const handleSelectUsefulWebsiteRequest = (websiteId: string) => {
-    setSelectedUsefulWebsiteRequests(prev => 
-      prev.includes(websiteId) 
-        ? prev.filter(id => id !== websiteId)
-        : [...prev, websiteId]
-    );
-  };
-
-  const handleBulkApproveUsefulWebsites = async () => {
-    if (selectedUsefulWebsiteRequests.length === 0) {
-      alert("Please select useful websites to approve.");
-      return;
-    }
-    for (const websiteId of selectedUsefulWebsiteRequests) {
-      await handleApproveUsefulWebsite(websiteId);
-    }
-    setSelectedUsefulWebsiteRequests([]);
-  };
-
-  const handleBulkRejectUsefulWebsites = async () => {
-    if (selectedUsefulWebsiteRequests.length === 0) {
-      alert("Please select useful websites to reject.");
-      return;
-    }
-    for (const websiteId of selectedUsefulWebsiteRequests) {
-      await handleRejectUsefulWebsite(websiteId);
-    }
-    setSelectedUsefulWebsiteRequests([]);
-  };
-
-
-  // Views and likes are now tracked automatically based on user interaction
-  // No manual controls needed in admin panel
-
-
+  // Utility functions
   const statusBadge = (status: string) => {
     let color = "bg-gray-400";
     if (status === "pending") color = "bg-yellow-400";
@@ -615,100 +365,93 @@ export default function AdminPage() {
     return <span className={`px-2 py-1 rounded text-white text-xs ${color}`}>{status}</span>;
   };
 
-  if (loading || !checked) return <div className="py-10 text-center text-lg text-gray-500">Loading...</div>;
-
-  if (!isAdmin) {
+  // Loading state
+  if (loading || !checked) {
     return (
-      <div className="max-w-2xl mx-auto py-10 text-center">
-        <AlertTriangle className="mx-auto text-red-500" size={48} />
-        <h2 className="text-2xl font-bold text-red-600 mt-4">Access Denied</h2>
-        <p className="text-gray-700 mt-2">
-          You do not have admin access. Please log in with an admin account.
-        </p>
-        {user?.email && (
-          <p className="mt-2 text-gray-500">Logged in as: {user.email}</p>
-        )}
+      <Suspense fallback={<div>Loading...</div>}>
+        <AdminLoading />
+      </Suspense>
+    );
+  }
+
+  // Error state
+  if (authorFetchError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center text-lg text-red-600">
+          <strong>Error fetching author from Sanity:</strong><br />
+          {authorFetchError}
+        </div>
       </div>
     );
   }
 
+  // Access denied state
+  if (!isAdmin) {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <AdminAccessDenied userEmail={user?.email} />
+      </Suspense>
+    );
+  }
+
+  // Filtered data
+  const pendingAiTools = aiTools.filter(tool => tool.status === 'pending');
+  const approvedAiTools = aiTools.filter(tool => tool.status === 'approved');
+  const pendingBlogs = blogs.filter(blog => blog.status === 'pending');
+  const pendingUsefulWebsites = usefulWebsites.filter(website => website.isApproved === false);
+  const approvedUsefulWebsites = usefulWebsites.filter(website => website.status === 'approved');
+
   return (
-    <div className="max-w-4xl mx-auto py-4 px-2 sm:px-4">
-      <div className="flex items-center gap-3 mb-4">
-        <BadgeCheck className="text-green-600" />
-        <span className="font-semibold text-green-700">
-          Logged in as: {user?.email} (Admin)
-        </span>
-      </div>
-      <h1 className="text-3xl font-bold mb-4 text-blue-700">Admin Dashboard</h1>
-      {/* Remove Tabs */}
-      <div className="space-y-6">
-        {/* Users Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 text-blue-600">All Users</h2>
-          {usersLoading ? (
-            <div className="animate-pulse text-gray-500">Loading users...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[600px] w-full bg-white rounded-lg shadow text-left text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 font-medium">Name</th>
-                    <th className="p-3 font-medium">Email</th>
-                    <th className="p-3 font-medium">Plan</th>
-                    <th className="p-3 font-medium">Admin</th>
-                    <th className="p-3 font-medium">Actions</th>
+    <AdminErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <Suspense fallback={<div>Loading header...</div>}>
+          <AdminHeader userEmail={user?.email || ''} />
+        </Suspense>
+        
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+          {/* Users Section */}
+          <Suspense fallback={<div>Loading users section...</div>}>
+            <AdminSection title="All Users" loading={usersLoading}>
+              <AdminTable headers={["Name", "Email", "Plan", "Admin", "Actions"]}>
+                {users.map(u => (
+                  <tr key={u._id} className="border-t hover:bg-blue-50 transition-colors">
+                    <td className="p-3">{u.name}</td>
+                    <td className="p-3">{u.email}</td>
+                    <td className="p-3">{u.plan ? u.plan.charAt(0).toUpperCase() + u.plan.slice(1) : "Free"}</td>
+                    <td className="p-3">{u.isAdmin ? "Yes" : "No"}</td>
+                    <td className="p-3 flex flex-wrap gap-2">
+                      <AdminButton
+                        onClick={() => handleToggleAdmin(u._id, u.isAdmin)}
+                        variant="primary"
+                        size="sm"
+                      >
+                        {u.isAdmin ? "Revoke Admin" : "Make Admin"}
+                      </AdminButton>
+                      <AdminButton
+                        onClick={() => handleDeleteUser(u._id, u.email)}
+                        variant="danger"
+                        size="sm"
+                      >
+                        Delete
+                      </AdminButton>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u._id} className="border-t hover:bg-blue-50 transition-colors">
-                      <td className="p-3">{u.name}</td>
-                      <td className="p-3">{u.email}</td>
-                      <td className="p-3">{u.plan ? u.plan.charAt(0).toUpperCase() + u.plan.slice(1) : "Free"}</td>
-                      <td className="p-3">{u.isAdmin ? "Yes" : "No"}</td>
-                      <td className="p-3 flex flex-wrap gap-2">
-                        <button
-                          className="px-2 py-1 bg-blue-500 text-white rounded shadow hover:bg-blue-600 transition-all"
-                          onClick={() => handleToggleAdmin(u._id, u.isAdmin)}
-                        >
-                          {u.isAdmin ? "Revoke Admin" : "Make Admin"}
-                        </button>
-                        <button
-                          className="px-2 py-1 bg-red-500 text-white rounded shadow hover:bg-red-600 transition-all"
-                          onClick={() => handleDeleteUser(u._id, u.email)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        {/* Payment History Section */}
-        <div className="bg-white rounded-lg shadow p-6 mt-6">
-          <h2 className="text-xl font-semibold mb-4 text-purple-600">User Payment History</h2>
-          {paymentsLoading ? (
-            <div className="animate-pulse text-gray-500">Loading payments...</div>
-          ) : payments.length === 0 ? (
-            <div className="text-gray-500">No payments found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[600px] w-full bg-white rounded-lg shadow text-left text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 font-medium">User</th>
-                    <th className="p-3 font-medium">Email</th>
-                    <th className="p-3 font-medium">Plan</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Amount</th>
-                    <th className="p-3 font-medium">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
+                ))}
+              </AdminTable>
+            </AdminSection>
+          </Suspense>
+
+          {/* Payment History Section */}
+          <Suspense fallback={<div>Loading payments section...</div>}>
+            <AdminSection title="User Payment History" loading={paymentsLoading}>
+              {paymentsError ? (
+                <div className="text-red-600 font-semibold mb-2">{paymentsError}</div>
+              ) : payments.length === 0 ? (
+                <div className="text-gray-500">No payments found.</div>
+              ) : (
+                <AdminTable headers={["User", "Email", "Plan", "Status", "Amount", "Date"]}>
                   {payments.map((p, idx) => (
                     <tr key={idx} className="border-t hover:bg-purple-50 transition-colors">
                       <td className="p-3">{p.user?.name || "-"}</td>
@@ -719,204 +462,112 @@ export default function AdminPage() {
                       <td className="p-3">{p.createdAt ? new Date(p.createdAt).toLocaleString() : "-"}</td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                </AdminTable>
+              )}
+            </AdminSection>
+          </Suspense>
 
-        {/* User Subscription Table Section */}
-        <div className="bg-white rounded-lg shadow p-6 mt-6">
-          <h2 className="text-xl font-semibold mb-4 text-purple-600">User Subscriptions & Purchases</h2>
-          <div className="flex flex-wrap gap-4 mb-4 items-center">
-            <label className="font-medium">Filter by Plan:</label>
-            <select
-              className="border rounded px-2 py-1"
-              value={planFilter}
-              onChange={e => setPlanFilter(e.target.value)}
-            >
-              <option value="All">All</option>
-              <option value="Free">Free</option>
-              <option value="Basic Plan">Basic Plan</option>
-              <option value="Premium Plan">Premium Plan</option>
-            </select>
-            <button
-              className="ml-auto px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-              onClick={() => setSortAsc(s => !s)}
-            >
-              Sort by Plan {sortAsc ? "▲" : "▼"}
-            </button>
-          </div>
-          {usersWithPurchasesLoading ? (
-            <div className="animate-pulse text-gray-500">Loading users...</div>
-          ) : usersWithPurchases.length === 0 ? (
-            <div className="text-gray-500">No users found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[800px] w-full bg-white rounded-lg shadow text-left text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 font-medium">Name</th>
-                    <th className="p-3 font-medium">Email</th>
-                    <th className="p-3 font-medium cursor-pointer" onClick={() => setSortAsc(s => !s)}>
-                      Current Plan {sortAsc ? "▲" : "▼"}
-                    </th>
-                    <th className="p-3 font-medium">Purchase History</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usersWithPurchases
-                    .filter(u => planFilter === "All" || u.currentPlan === planFilter)
-                    .sort((a, b) => {
-                      if (a.currentPlan === b.currentPlan) return 0;
-                      return sortAsc
-                        ? a.currentPlan.localeCompare(b.currentPlan)
-                        : b.currentPlan.localeCompare(a.currentPlan);
-                    })
-                    .map((u, idx) => (
-                      <tr key={u.id} className="border-t hover:bg-purple-50 transition-colors">
-                        <td className="p-3 font-semibold">{u.name}</td>
-                        <td className="p-3">{u.email}</td>
-                        <td className="p-3">{u.currentPlan}</td>
-                        <td className="p-3">
-                          {u.purchaseHistory.length === 0 ? (
-                            <span className="text-gray-400">No purchases</span>
-                          ) : (
-                            <div className="space-y-1">
-                              {u.purchaseHistory.map((ph: any, i: number) => (
-                                <div key={ph.id || i} className="border-b last:border-b-0 pb-1 mb-1 last:mb-0 last:pb-0">
-                                  <span className="font-medium text-blue-700">{ph.plan}</span>
-                                  <span className="mx-2 text-gray-500">|</span>
-                                  <span className="text-green-700">₹{ph.amount}</span>
-                                  <span className="mx-2 text-gray-500">|</span>
-                                  <span className="text-gray-600">{ph.date ? new Date(ph.date).toLocaleString() : "-"}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* AI Tools Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-yellow-600">Pending AI Tools</h2>
-          {aiToolsLoading ? (
-            <div className="animate-pulse text-gray-500">Loading AI Tools...</div>
-          ) : (
-            <>
-              <div className="flex items-center mb-4 gap-2">
-                <input
-                  type="checkbox"
-                  id="select-all-pending"
-                  checked={filteredAiTools.filter(t => t.status === 'pending').length > 0 && filteredAiTools.filter(t => t.status === 'pending').every(t => selectedRequests.includes(t._id))}
-                  ref={el => {
-                    if (el) {
-                      const valid = filteredAiTools.filter(t => t.status === 'pending');
-                      const all = valid.length > 0 && valid.every(t => selectedRequests.includes(t._id));
-                      const some = valid.some(t => selectedRequests.includes(t._id));
-                      el.indeterminate = some && !all;
-                    }
-                  }}
-                  onChange={e => {
-                    const valid = filteredAiTools.filter(t => t.status === 'pending');
-                    if (e.target.checked) {
-                      setSelectedRequests(prev => Array.from(new Set([...prev, ...valid.map(t => t._id)])));
-                    } else {
-                      setSelectedRequests(prev => prev.filter(id => !valid.map(t => t._id).includes(id)));
-                    }
-                  }}
-                  className="mr-2"
-                />
-                <label htmlFor="select-all-pending" className="text-sm font-medium">Select All Pending</label>
-                <button
-                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm"
-                  disabled={selectedRequests.length === 0}
-                  onClick={handleBulkApprove}
-                >
-                  Bulk Approve ({selectedRequests.length})
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="p-3 font-medium">Select</th>
-                      <th className="p-3 font-medium">Title</th>
-                      <th className="p-3 font-medium">Category</th>
-                      <th className="p-3 font-medium">Author</th>
-                      <th className="p-3 font-medium">Status</th>
-                      <th className="p-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAiTools.filter(tool => tool.status === 'pending').map(tool => (
-                      <tr key={tool._id} className="border-t hover:bg-blue-50 transition-colors">
-                        <td className="p-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedRequests.includes(tool._id)}
-                            onChange={() => handleSelectRequest(tool._id)}
-                          />
-                        </td>
-                        <td className="p-3">
-                          <div className="font-semibold text-blue-700">{tool.title}</div>
-                          <div className="text-gray-600 text-xs line-clamp-2">{tool.description}</div>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex flex-wrap gap-1">
-                            {Array.from(new Set(tool.types))?.slice(0, 2).map(type => (
-                              <span key={type} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{type}</span>
+          {/* User Subscriptions Section */}
+          <Suspense fallback={<div>Loading subscriptions section...</div>}>
+            <AdminSection title="User Subscriptions & Purchases" loading={usersWithPurchasesLoading}>
+              {usersWithPurchases.length === 0 ? (
+                <div className="text-gray-500">No users found.</div>
+              ) : (
+                <AdminTable headers={["Name", "Email", "Current Plan", "Purchase History"]}>
+                  {usersWithPurchases.map((u, idx) => (
+                    <tr key={u.id} className="border-t hover:bg-purple-50 transition-colors">
+                      <td className="p-3 font-semibold">{u.name}</td>
+                      <td className="p-3">{u.email}</td>
+                      <td className="p-3">{u.currentPlan}</td>
+                      <td className="p-3">
+                        {u.purchaseHistory.length === 0 ? (
+                          <span className="text-gray-400">No purchases</span>
+                        ) : (
+                          <div className="space-y-1">
+                            {u.purchaseHistory.map((ph: any, i: number) => (
+                              <div key={ph.id || i} className="border-b last:border-b-0 pb-1 mb-1 last:mb-0 last:pb-0">
+                                <span className="font-medium text-blue-700">{ph.plan}</span>
+                                <span className="mx-2 text-gray-500">|</span>
+                                <span className="text-green-700">₹{ph.amount}</span>
+                                <span className="mx-2 text-gray-500">|</span>
+                                <span className="text-gray-600">{ph.date ? new Date(ph.date).toLocaleString() : "-"}</span>
+                              </div>
                             ))}
-                            {tool.types && tool.types.length > 2 && (
-                              <span className="text-gray-500 text-xs">+{tool.types.length - 2}</span>
-                            )}
                           </div>
-                        </td>
-                        <td className="p-3 text-sm">{tool.author?.name || "Unknown"}</td>
-                        <td className="p-3">{statusBadge(tool.status)}</td>
-                        <td className="p-3">
-                          <div className="flex flex-wrap gap-1">
-                            <button className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all text-xs" onClick={() => handleApproveAiTool(tool._id)}>Approve</button>
-                            <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-xs" onClick={() => handleRejectAiTool(tool._id)}>Reject</button>
-                            <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditAiTool(tool)}>Edit</button>
-                            <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteAiTool(tool._id)}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {filteredAiTools.filter(tool => tool.status === 'pending').length === 0 && (
-                  <div className="text-gray-500 text-center py-8">No pending AI Tools.</div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-green-600">Approved AI Tools</h2>
-          {aiToolsLoading ? (
-            <div className="animate-pulse text-gray-500">Loading AI Tools...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 font-medium">Title</th>
-                    <th className="p-3 font-medium">Category</th>
-                    <th className="p-3 font-medium">Author</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAiTools.filter(tool => tool.status === 'approved').map(tool => (
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </AdminTable>
+              )}
+            </AdminSection>
+          </Suspense>
+
+          {/* Pending AI Tools Section */}
+          <Suspense fallback={<div>Loading AI tools section...</div>}>
+            <AdminSection title="Pending AI Tools" loading={aiToolsLoading}>
+              {pendingAiTools.length === 0 ? (
+                <div className="text-gray-500 text-center py-8">No pending AI Tools.</div>
+              ) : (
+                <AdminTable headers={["Title", "Category", "Author", "Status", "Actions"]}>
+                  {pendingAiTools.map(tool => (
+                    <tr key={tool._id} className="border-t hover:bg-blue-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-semibold text-blue-700">{tool.title}</div>
+                        <div className="text-gray-600 text-xs line-clamp-2">{tool.description}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {Array.from(new Set(tool.types))?.slice(0, 2).map(type => (
+                            <span key={type} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{type}</span>
+                          ))}
+                          {tool.types && tool.types.length > 2 && (
+                            <span className="text-gray-500 text-xs">+{tool.types.length - 2}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm">{tool.author?.name || "Unknown"}</td>
+                      <td className="p-3">{statusBadge(tool.status)}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          <AdminButton
+                            onClick={() => handleApproveAiTool(tool._id)}
+                            variant="success"
+                            size="sm"
+                          >
+                            Approve
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleRejectAiTool(tool._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Reject
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleDeleteAiTool(tool._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Delete
+                          </AdminButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </AdminTable>
+              )}
+            </AdminSection>
+          </Suspense>
+
+          {/* Approved AI Tools Section */}
+          <Suspense fallback={<div>Loading approved AI tools section...</div>}>
+            <AdminSection title="Approved AI Tools" loading={aiToolsLoading}>
+              {approvedAiTools.length === 0 ? (
+                <div className="text-gray-500 text-center py-8">No approved AI Tools.</div>
+              ) : (
+                <AdminTable headers={["Title", "Category", "Author", "Status", "Actions"]}>
+                  {approvedAiTools.map(tool => (
                     <tr key={tool._id} className="border-t hover:bg-green-50 transition-colors">
                       <td className="p-3">
                         <div className="font-semibold text-green-700">{tool.title}</div>
@@ -936,366 +587,136 @@ export default function AdminPage() {
                       <td className="p-3">{statusBadge(tool.status)}</td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
-                          <button className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all text-xs" onClick={() => handleRejectAiTool(tool._id)}>Reject</button>
-                          <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditAiTool(tool)}>Edit</button>
-                          <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteAiTool(tool._id)}>Delete</button>
+                          <AdminButton
+                            onClick={() => handleRejectAiTool(tool._id)}
+                            variant="warning"
+                            size="sm"
+                          >
+                            Reject
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleDeleteAiTool(tool._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Delete
+                          </AdminButton>
                         </div>
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-              {filteredAiTools.filter(tool => tool.status === 'approved').length === 0 && (
-                <div className="text-gray-500 text-center py-8">No approved AI Tools.</div>
+                </AdminTable>
               )}
-            </div>
-          )}
-        </div>
+            </AdminSection>
+          </Suspense>
 
-
-
-        {/* Edit AI Tool Modal */}
-        {editAiTool && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow w-full max-w-lg">
-              <h3 className="text-xl font-bold mb-4">Edit AI Tool</h3>
-              <form onSubmit={handleEditFormSubmit}>
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="title"
-                  value={editForm?.title || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Title"
-                  required
-                />
-                <textarea
-                  className="w-full p-2 mb-2 border rounded"
-                  name="description"
-                  value={editForm?.description || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Description"
-                  required
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="coverImage"
-                  value={editForm?.coverImage || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Cover Image URL"
-                  required
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="category"
-                  value={editForm?.category || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Category"
-                  required
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="subCategory"
-                  value={editForm?.subCategory || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Sub-Category"
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="toolWebsiteURL"
-                  value={editForm?.toolWebsiteURL || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Tool Website URL"
-                />
-                {/* Tool Image Preview and Edit */}
-                <div className="my-4 p-4 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center gap-3">
-                  <div className="w-full">
-                    <label htmlFor="editToolImageUrl" className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                    <input
-                      id="editToolImageUrl"
-                      name="editToolImageUrl"
-                      type="url"
-                      className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                      placeholder="https://example.com/image.png"
-                      value={editImageUrlInput}
-                      onChange={e => setEditImageUrlInput(e.target.value)}
-                    />
-                  </div>
-                  {(editImageUrlInput || editForm?.toolImage) && (
-                    <div className="flex justify-center mt-3 w-full">
-                      <img
-                        src={editImageUrlInput || editForm?.toolImage || "/logo.png"}
-                        alt={editForm?.title + " image"}
-                        className="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 shadow-sm bg-white"
-                        onError={e => { e.currentTarget.src = "/logo.png"; }}
-                      />
-                    </div>
-                  )}
-                  <p className="text-xs text-gray-500 mt-2 text-center">Recommended: Square image, at least 256x256px. Supported: JPG, PNG, GIF, WEBP, SVG.</p>
-                </div>
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="toolImage"
-                  value={editImageUrl || editImageUrlInput || editForm?.toolImage || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Tool Image URL"
-                  style={{ display: 'none' }}
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="pitch"
-                  value={editForm?.pitch || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Pitch"
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="types"
-                  value={editForm?.types?.join(", ") || ""}
-                  onChange={handleEditFormChange}
-                  placeholder="Types (comma-separated)"
-                />
-                <div className="flex gap-2 mt-4">
-                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-                  <button type="button" className="px-4 py-2 bg-gray-400 text-white rounded" onClick={() => setEditAiTool(null)}>Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Useful Website Modal */}
-        {editUsefulWebsite && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow w-full max-w-lg">
-              <h3 className="text-xl font-bold mb-4">Edit Useful Website</h3>
-              <form onSubmit={handleEditUsefulWebsiteFormSubmit}>
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="title"
-                  value={editUsefulWebsiteForm?.title || ""}
-                  onChange={handleEditUsefulWebsiteFormChange}
-                  placeholder="Website Title"
-                  required
-                />
-                <textarea
-                  className="w-full p-2 mb-2 border rounded"
-                  name="description"
-                  value={editUsefulWebsiteForm?.description || ""}
-                  onChange={handleEditUsefulWebsiteFormChange}
-                  placeholder="Description"
-                  required
-                  rows={3}
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="category"
-                  value={editUsefulWebsiteForm?.category || ""}
-                  onChange={handleEditUsefulWebsiteFormChange}
-                  placeholder="Category"
-                  required
-                />
-                <input
-                  className="w-full p-2 mb-2 border rounded"
-                  name="websiteURL"
-                  value={editUsefulWebsiteForm?.websiteURL || ""}
-                  onChange={handleEditUsefulWebsiteFormChange}
-                  placeholder="Website URL"
-                  required
-                />
-                <textarea
-                  className="w-full p-2 mb-2 border rounded"
-                  name="pitch"
-                  value={editUsefulWebsiteForm?.pitch || ""}
-                  onChange={handleEditUsefulWebsiteFormChange}
-                  placeholder="Why is this website useful?"
-                  rows={3}
-                />
-                <div className="flex gap-2 mt-4">
-                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-                  <button type="button" className="px-4 py-2 bg-gray-400 text-white rounded" onClick={() => setEditUsefulWebsite(null)}>Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Pending Useful Websites Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-yellow-600">Pending Useful Websites</h2>
-          {usefulWebsitesLoading ? (
-            <div className="animate-pulse text-gray-500">Loading useful websites...</div>
-          ) : (
-            <>
-              <div className="flex items-center mb-4 gap-2">
-                <input
-                  type="text"
-                  placeholder="Search pending useful websites..."
-                  className="flex-1 p-2 border rounded"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <button
-                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-all text-sm"
-                  onClick={handleBulkApproveUsefulWebsites}
-                >
-                  Bulk Approve ({selectedUsefulWebsiteRequests.length})
-                </button>
-                <button
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-all text-sm"
-                  onClick={handleBulkRejectUsefulWebsites}
-                >
-                  Bulk Reject ({selectedUsefulWebsiteRequests.length})
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="p-3 font-medium">Select</th>
-                      <th className="p-3 font-medium">Title</th>
-                      <th className="p-3 font-medium">Category</th>
-                      <th className="p-3 font-medium">URL</th>
-                      <th className="p-3 font-medium">Author</th>
-                      <th className="p-3 font-medium">Status</th>
-                      <th className="p-3 font-medium">Actions</th>
+          {/* Pending Useful Websites Section */}
+          <Suspense fallback={<div>Loading useful websites section...</div>}>
+            <AdminSection title="Pending Useful Websites" loading={usefulWebsitesLoading}>
+              {pendingUsefulWebsites.length === 0 ? (
+                <div className="text-gray-500 text-center py-8">No pending useful websites.</div>
+              ) : (
+                <AdminTable headers={["Title", "Category", "URL", "Author", "Status", "Actions"]}>
+                  {pendingUsefulWebsites.map(website => (
+                    <tr key={website._id} className="border-t hover:bg-yellow-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-semibold text-yellow-700">{website.title}</div>
+                        <div className="text-gray-600 text-xs line-clamp-2">{website.description?.slice(0, 100)}...</div>
+                      </td>
+                      <td className="p-3 text-sm">{website.category}</td>
+                      <td className="p-3">
+                        <a href={website.websiteURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate block max-w-32">
+                          {website.websiteURL}
+                        </a>
+                      </td>
+                      <td className="p-3 text-sm">{website.author?.name || "Unknown"}</td>
+                      <td className="p-3">{statusBadge(website.status)}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          <AdminButton
+                            onClick={() => handleApproveUsefulWebsite(website._id)}
+                            variant="success"
+                            size="sm"
+                          >
+                            Approve
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleRejectUsefulWebsite(website._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Reject
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleDeleteUsefulWebsite(website._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Delete
+                          </AdminButton>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {usefulWebsites
-                      .filter(website => 
-                        website.status === 'pending' &&
-                        (website.title.toLowerCase().includes(search.toLowerCase()) ||
-                        website.description.toLowerCase().includes(search.toLowerCase()) ||
-                        website.category.toLowerCase().includes(search.toLowerCase()))
-                      )
-                      .map(website => (
-                        <tr key={website._id} className="border-t hover:bg-yellow-50 transition-colors">
-                          <td className="p-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedUsefulWebsiteRequests.includes(website._id)}
-                              onChange={() => handleSelectUsefulWebsiteRequest(website._id)}
-                            />
-                          </td>
-                          <td className="p-3">
-                            <div className="font-semibold text-yellow-700">{website.title}</div>
-                            <div className="text-gray-600 text-xs line-clamp-2">{website.description?.slice(0, 100)}...</div>
-                          </td>
-                          <td className="p-3 text-sm">{website.category}</td>
-                          <td className="p-3">
-                            <a href={website.websiteURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate block max-w-32">
-                              {website.websiteURL}
-                            </a>
-                          </td>
-                          <td className="p-3 text-sm">{website.author?.name || "Unknown"}</td>
-                          <td className="p-3">{statusBadge(website.status)}</td>
-                          <td className="p-3">
-                            <div className="flex flex-wrap gap-1">
-                              <button className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all text-xs" onClick={() => handleApproveUsefulWebsite(website._id)}>Approve</button>
-                              <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-xs" onClick={() => handleRejectUsefulWebsite(website._id)}>Reject</button>
-                              <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditUsefulWebsite(website)}>Edit</button>
-                              <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteUsefulWebsite(website._id)}>Delete</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                {usefulWebsites.filter(website => 
-                  website.status === 'pending' &&
-                  (website.title.toLowerCase().includes(search.toLowerCase()) ||
-                  website.description.toLowerCase().includes(search.toLowerCase()) ||
-                  website.category.toLowerCase().includes(search.toLowerCase()))
-                ).length === 0 && (
-                  <div className="text-gray-500 text-center py-8">No pending useful websites.</div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Approved Useful Websites Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-green-600">Approved Useful Websites</h2>
-          {usefulWebsitesLoading ? (
-            <div className="animate-pulse text-gray-500">Loading useful websites...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 font-medium">Title</th>
-                    <th className="p-3 font-medium">Category</th>
-                    <th className="p-3 font-medium">URL</th>
-                    <th className="p-3 font-medium">Author</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usefulWebsites
-                    .filter(website => 
-                      website.status === 'approved' &&
-                      (website.title.toLowerCase().includes(search.toLowerCase()) ||
-                      website.description.toLowerCase().includes(search.toLowerCase()) ||
-                      website.category.toLowerCase().includes(search.toLowerCase()))
-                    )
-                    .map(website => (
-                      <tr key={website._id} className="border-t hover:bg-green-50 transition-colors">
-                        <td className="p-3">
-                          <div className="font-semibold text-green-700">{website.title}</div>
-                          <div className="text-gray-600 text-xs line-clamp-2">{website.description?.slice(0, 100)}...</div>
-                        </td>
-                        <td className="p-3 text-sm">{website.category}</td>
-                        <td className="p-3">
-                          <a href={website.websiteURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate block max-w-32">
-                            {website.websiteURL}
-                          </a>
-                        </td>
-                        <td className="p-3 text-sm">{website.author?.name || "Unknown"}</td>
-                        <td className="p-3">{statusBadge(website.status)}</td>
-                        <td className="p-3">
-                          <div className="flex flex-wrap gap-1">
-                            <button className="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-all text-xs" onClick={() => handleRejectUsefulWebsite(website._id)}>Reject</button>
-                            <button className="px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500 transition-all text-xs" onClick={() => handleEditUsefulWebsite(website)}>Edit</button>
-                            <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteUsefulWebsite(website._id)}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-              {usefulWebsites.filter(website => 
-                website.status === 'approved' &&
-                (website.title.toLowerCase().includes(search.toLowerCase()) ||
-                website.description.toLowerCase().includes(search.toLowerCase()) ||
-                website.category.toLowerCase().includes(search.toLowerCase()))
-              ).length === 0 && (
-                <div className="text-gray-500 text-center py-8">No approved useful websites.</div>
+                  ))}
+                </AdminTable>
               )}
-            </div>
-          )}
-        </div>
+            </AdminSection>
+          </Suspense>
 
-        {/* Blogs Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 text-blue-600">Pending Blogs</h2>
-          {blogsLoading ? (
-            <div className="animate-pulse text-gray-500">Loading blogs...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow text-left text-sm">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="p-3 font-medium">Title</th>
-                    <th className="p-3 font-medium">Category</th>
-                    <th className="p-3 font-medium">Author</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBlogs.map(blog => (
+          {/* Approved Useful Websites Section */}
+          <Suspense fallback={<div>Loading approved useful websites section...</div>}>
+            <AdminSection title="Approved Useful Websites" loading={usefulWebsitesLoading}>
+              {approvedUsefulWebsites.length === 0 ? (
+                <div className="text-gray-500 text-center py-8">No approved useful websites.</div>
+              ) : (
+                <AdminTable headers={["Title", "Category", "URL", "Author", "Status", "Actions"]}>
+                  {approvedUsefulWebsites.map(website => (
+                    <tr key={website._id} className="border-t hover:bg-green-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-semibold text-green-700">{website.title}</div>
+                        <div className="text-gray-600 text-xs line-clamp-2">{website.description?.slice(0, 100)}...</div>
+                      </td>
+                      <td className="p-3 text-sm">{website.category}</td>
+                      <td className="p-3">
+                        <a href={website.websiteURL} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate block max-w-32">
+                          {website.websiteURL}
+                        </a>
+                      </td>
+                      <td className="p-3 text-sm">{website.author?.name || "Unknown"}</td>
+                      <td className="p-3">{statusBadge(website.status)}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          <AdminButton
+                            onClick={() => handleRejectUsefulWebsite(website._id)}
+                            variant="warning"
+                            size="sm"
+                          >
+                            Reject
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleDeleteUsefulWebsite(website._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Delete
+                          </AdminButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </AdminTable>
+              )}
+            </AdminSection>
+          </Suspense>
+
+          {/* Pending Blogs Section */}
+          <Suspense fallback={<div>Loading blogs section...</div>}>
+            <AdminSection title="Pending Blogs" loading={blogsLoading}>
+              {pendingBlogs.length === 0 ? (
+                <div className="text-gray-500 text-center py-8">No pending blogs.</div>
+              ) : (
+                <AdminTable headers={["Title", "Category", "Author", "Status", "Actions"]}>
+                  {pendingBlogs.map(blog => (
                     <tr key={blog._id} className="border-t hover:bg-blue-50 transition-colors">
                       <td className="p-3">
                         <div className="font-semibold text-blue-700">{blog.title}</div>
@@ -1306,22 +727,38 @@ export default function AdminPage() {
                       <td className="p-3">{statusBadge(blog.status)}</td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
-                          <button className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-all text-xs" onClick={() => handleApproveBlog(blog._id)}>Approve</button>
-                          <button className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-all text-xs" onClick={() => handleRejectBlog(blog._id)}>Reject</button>
-                          <button className="px-2 py-1 bg-gray-700 text-white rounded hover:bg-black transition-all text-xs" onClick={() => handleDeleteBlog(blog._id)}>Delete</button>
+                          <AdminButton
+                            onClick={() => handleApproveBlog(blog._id)}
+                            variant="success"
+                            size="sm"
+                          >
+                            Approve
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleRejectBlog(blog._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Reject
+                          </AdminButton>
+                          <AdminButton
+                            onClick={() => handleDeleteBlog(blog._id)}
+                            variant="danger"
+                            size="sm"
+                          >
+                            Delete
+                          </AdminButton>
                         </div>
                       </td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
-              {filteredBlogs.length === 0 && (
-                <div className="text-gray-500 text-center py-8">No pending blogs.</div>
+                </AdminTable>
               )}
-            </div>
-          )}
+            </AdminSection>
+          </Suspense>
         </div>
       </div>
     </div>
+    </AdminErrorBoundary>
   );
 } 

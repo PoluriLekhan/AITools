@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       websiteURL,
       pitch: pitch || "",
       status: "pending",
+      isApproved: false,
       views: 0,
       autoIncrementViews: true,
       author: {
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    // Return a more detailed error message for debugging (do not leak sensitive info)
     let errorMessage = "Failed to create useful website";
     if (error && typeof error === "object" && error !== null && "message" in error && typeof (error as any).message === "string") {
       errorMessage = (error as any).message;

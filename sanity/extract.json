@@ -76,6 +76,13 @@
         },
         "optional": true
       },
+      "isApproved": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "boolean"
+        },
+        "optional": true
+      },
       "status": {
         "type": "objectAttribute",
         "value": {

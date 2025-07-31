@@ -178,7 +178,7 @@ export const AITOOLS_BY_AUTHOR_QUERY =
 }`);
 
 export const USEFUL_WEBSITES_QUERY =
-  defineQuery(`*[_type == "usefulWebsite" && status == "approved"] | order(_createdAt desc) {
+  defineQuery(`*[_type == "usefulWebsite" && status == "approved" && isApproved == true] | order(_createdAt desc) {
   _id, 
   title, 
   _createdAt,
@@ -191,6 +191,7 @@ export const USEFUL_WEBSITES_QUERY =
   "image": websiteImage,
   websiteURL,
   status,
+  isApproved,
 }`);
 
 

@@ -22,9 +22,11 @@ export async function POST(request: NextRequest) {
     const shouldIncrement = document?.autoIncrementViews !== false;
     const updatedViews = shouldIncrement ? (views || 0) + 1 : (views || 0);
     
+    // Use atomic increment to avoid race conditions
     await writeClient
       .patch(documentId)
-      .set({ views: updatedViews })
+      .inc(shouldIncrement ? { views: 1 } : {}) // atomic increment
+      .set(!shouldIncrement ? { views: updatedViews } : {})
       .commit();
 
     return NextResponse.json({ success: true, views: updatedViews });

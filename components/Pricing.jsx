@@ -45,9 +45,9 @@ const handleRazorpay = async (planKey, setLoading, user) => {
           paylater: false,
         },
         prefill: {
-          name: user?.displayName || undefined,
-          email: user?.email || undefined,
-          contact: user?.phoneNumber || "", // Always use user's phone if available
+          name: user?.displayName || "",
+          email: user?.email || "",
+          contact: user?.phoneNumber || "",
         },
         theme: {
           color: "#0d6efd",
@@ -63,6 +63,8 @@ const handleRazorpay = async (planKey, setLoading, user) => {
           const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
           // Call backend to verify payment
           try {
+            // Extract amount from plan (in INR, convert to paise)
+            const amount = plan.amount * 100;
             const verifyRes = await fetch("/api/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -77,6 +79,7 @@ const handleRazorpay = async (planKey, setLoading, user) => {
                   uid: user?.uid,
                 },
                 plan: plan.label,
+                amount, // Send amount in paise
               }),
             });
             const verifyData = await verifyRes.json();
@@ -92,27 +95,22 @@ const handleRazorpay = async (planKey, setLoading, user) => {
         config: {
           display: {
             blocks: {
+              card: {
+                name: "Cards",
+                instruments: [{ method: "card" }],
+              },
+              netbanking: {
+                name: "Netbanking",
+                instruments: [{ method: "netbanking" }],
+              },
               upi: {
                 name: "UPI",
                 instruments: [
                   { method: "upi" },
-                  { method: "upi", apps: ["phonepe", "google_pay"] },
-                ],
-              },
-              card: {
-                name: "Cards",
-                instruments: [
-                  { method: "card" },
-                ],
-              },
-              netbanking: {
-                name: "Netbanking",
-                instruments: [
-                  { method: "netbanking" },
                 ],
               },
             },
-            sequence: ["block.upi", "block.card", "block.netbanking"],
+            sequence: ["block.card", "block.netbanking", "block.upi"], // All three, inline
             preferences: {
               show_default_blocks: false,
             },

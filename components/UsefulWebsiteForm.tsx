@@ -191,6 +191,13 @@ const UsefulWebsiteForm = () => {
     const result = await handleFormSubmit(formData);
     setState(result);
     setLoading(false);
+    // Reset form fields and errors after successful submission
+    if (result.status === "SUCCESS") {
+      setErrors({});
+      setPitch("");
+      setState({ error: "", status: "INITIAL" });
+      // Add any other fields that need resetting
+    }
   };
 
   return (

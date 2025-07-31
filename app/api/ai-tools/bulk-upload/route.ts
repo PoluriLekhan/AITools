@@ -51,7 +51,9 @@ export async function POST(req: NextRequest) {
   for (const row of tools) {
     const aiToolName = row.aiToolName?.trim();
     const websiteUrl = row.websiteUrl?.trim();
-    const duplicate = allTools.find((tool: any) =>
+    // Duplicate check should be done just before creation to avoid race conditions
+    const freshTools = await client.fetch(`*[_type == 'aiTool']{title, toolWebsiteURL}`);
+    const duplicate = freshTools.find((tool: any) =>
       (tool.title && tool.title.trim().toLowerCase() === aiToolName?.toLowerCase()) ||
       (tool.toolWebsiteURL && tool.toolWebsiteURL.trim().toLowerCase() === websiteUrl?.toLowerCase())
     );

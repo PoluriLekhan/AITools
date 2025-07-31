@@ -64,10 +64,7 @@ export default function UsefulWebsitesPage() {
           Discover helpful websites and resources handpicked by our community.
         </p>
         <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-full text-white font-semibold">
-            <span className="text-2xl">🌐</span>
-            <span className="text-lg">{usefulWebsites.length} Useful Websites</span>
-          </div>
+          {/* Removed globe icon and count */}
         </div>
       </section>
 
