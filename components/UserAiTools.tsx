@@ -4,7 +4,7 @@ import UsefulWebsiteCard, { UsefulWebsiteTypeCard } from "@/components/UsefulWeb
 
 const UserUsefulWebsites = ({ websites, status }: { websites: UsefulWebsiteTypeCard[]; status?: string }) => {
   const filteredWebsites = status 
-    ? websites.filter((site: UsefulWebsiteTypeCard) => site.status === status)
+    ? websites.filter((site: UsefulWebsiteTypeCard) => (site as any)?.status === status)
     : websites;
 
   return (

@@ -45,9 +45,9 @@ function SearchContent() {
     performSearch();
   }, [query]);
 
-  const totalResults = searchResults 
-    ? searchResults.aiTools.length + searchResults.blogs.length 
-    : 0;
+  const aiTools = searchResults?.aiTools ?? [];
+  const blogs = searchResults?.blogs ?? [];
+  const totalResults = aiTools.length + blogs.length;
 
   return (
     <>
@@ -80,7 +80,7 @@ function SearchContent() {
               </h2>
               <p className="text-gray-600 mb-4">
                 Found {totalResults} result{totalResults !== 1 ? 's' : ''} 
-                ({searchResults?.aiTools?.length || 0} AI tools, {searchResults?.blogs?.length || 0} blogs)
+                ({aiTools.length} AI tools, {blogs.length} blogs)
               </p>
 
               {/* Tab Navigation */}
@@ -103,7 +103,7 @@ function SearchContent() {
                       : 'bg-white text-black border-black hover:bg-gray-50'
                   }`}
                 >
-                  AI Tools ({searchResults?.aiTools?.length || 0})
+                  AI Tools ({aiTools.length})
                 </button>
                 <button
                   onClick={() => setActiveTab("blogs")}
@@ -113,7 +113,7 @@ function SearchContent() {
                       : 'bg-white text-black border-black hover:bg-gray-50'
                   }`}
                 >
-                  Blogs ({searchResults?.blogs?.length || 0})
+                  Blogs ({blogs.length})
                 </button>
               </div>
             </div>
@@ -135,13 +135,13 @@ function SearchContent() {
             ) : (
               <>
                 {/* AI Tools Results */}
-                {(activeTab === "all" || activeTab === "aiTools") && searchResults?.aiTools?.length > 0 && (
+                {(activeTab === "all" || activeTab === "aiTools") && aiTools.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                      AI Tools ({searchResults.aiTools?.length})
+                      AI Tools ({aiTools.length})
                     </h3>
                     <ul className="card_grid-sm">
-                      {searchResults.aiTools.map((tool) => (
+                      {aiTools.map((tool) => (
                         <motion.div 
                           key={tool._id} 
                           initial={{ opacity: 0, y: 30 }} 
@@ -156,13 +156,13 @@ function SearchContent() {
                 )}
 
                 {/* Blogs Results */}
-                {(activeTab === "all" || activeTab === "blogs") && searchResults?.blogs?.length > 0 && (
+                {(activeTab === "all" || activeTab === "blogs") && blogs.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                      Blog Posts ({searchResults.blogs?.length})
+                      Blog Posts ({blogs.length})
                     </h3>
                     <ul className="card_grid-sm">
-                      {searchResults.blogs.map((blog) => (
+                      {blogs.map((blog) => (
                         <motion.div 
                           key={blog._id} 
                           initial={{ opacity: 0, y: 30 }} 

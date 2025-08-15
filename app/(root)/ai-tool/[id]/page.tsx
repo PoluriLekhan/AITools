@@ -1,27 +1,13 @@
-import { Suspense } from "react";
 import { client } from "@/sanity/lib/client";
-import {
-  PLAYLIST_BY_SLUG_QUERY,
-  AITOOL_BY_ID_QUERY,
-} from "@/sanity/lib/queries";
+import { PLAYLIST_BY_SLUG_QUERY, AITOOL_BY_ID_QUERY } from "@/sanity/lib/queries";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/lib/utils";
-import Link from "next/link";
-import Image from "next/image";
 import markdownit from "markdown-it";
-import { Skeleton } from "@/components/ui/skeleton";
 import View from "@/components/View";
-import AiToolCard, { AiToolTypeCard } from "@/components/AiToolCard";
-import { ExternalLinkIcon } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Heart, EyeIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import LikeButton from '@/components/LikeButton';
+import { EyeIcon } from "lucide-react";
 import Likes from "@/components/Likes";
 
 const md = markdownit();
-
-export const experimental_ppr = true;
 
 const Page = async ({ params }: { params: { id: string } }) => {
   const id = params.id;

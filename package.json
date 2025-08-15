@@ -10,7 +10,8 @@
     "predev": "npm run typegen",
     "prebuild": "npm run typegen",
     "typegen": "sanity schema extract --path=./sanity/extract.json && sanity typegen generate",
-    "vercel-build": "npm run typegen && next build"
+    "vercel-build": "npm run typegen && next build",
+    "seed": "node scripts/seed-database.js"
   },
   "packageManager": "npm@10.5.2",
   "dependencies": {
@@ -35,6 +36,8 @@
     "firebase": "^11.10.0",
     "firebase-admin": "^13.4.0",
     "lucide-react": "^0.452.0",
+    "framer-motion": "^10.18.0",
+    "easymde": "^2.18.0",
     "markdown-it": "^14.1.0",
     "mongodb": "^6.18.0",
     "mongoose": "^8.16.4",

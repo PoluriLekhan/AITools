@@ -2,12 +2,9 @@
 const { withSentryConfig } = require("@sentry/nextjs");
 
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Keep errors visible in local dev; Vercel can still build with these toggles if needed
+  typescript: { ignoreBuildErrors: false },
+  eslint: { ignoreDuringBuilds: true },
   images: {
     dangerouslyAllowSVG: true,
     remotePatterns: [

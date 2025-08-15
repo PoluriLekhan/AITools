@@ -11,123 +11,16 @@ const PLAN_DETAILS = {
   Premium: { amount: 249, label: "Premium" },
 };
 
-const handleRazorpay = async (planKey, setLoading, user) => {
+const handleBuyPlan = async (planKey, setLoading, user) => {
   setLoading(prev => ({ ...prev, [planKey]: true }));
   try {
+    // Redirect to payment page with plan details
     const plan = PLAN_DETAILS[planKey];
-    const res = await fetch("/api/create-order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: plan.amount, currency: "INR" }),
-    });
-    const data = await res.json();
-    if (!data.orderId) throw new Error("Order creation failed");
-    // Remove any existing Razorpay script to avoid duplicates
-    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-    if (existingScript) existingScript.remove();
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => {
-      const options = {
-        key: RAZORPAY_KEY,
-        currency: "INR",
-        name: plan.label + " Plan",
-        description: "Lekhan Studio AI Plan",
-        image: "/logo.png",
-        order_id: data.orderId,
-        method: {
-          upi: true,
-          card: true,
-          netbanking: true,
-          wallet: false,
-          emi: false,
-          paylater: false,
-        },
-        prefill: {
-          name: user?.displayName || "",
-          email: user?.email || "",
-          contact: user?.phoneNumber || "",
-        },
-        theme: {
-          color: "#0d6efd",
-        },
-        modal: {
-          ondismiss: function () {
-            alert("Payment Failed or Cancelled");
-          },
-        },
-        handler: async function (response) {
-          // Log payment details
-          console.log("Razorpay Payment Success", response);
-          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
-          // Call backend to verify payment
-          try {
-            // Extract amount from plan (in INR, convert to paise)
-            const amount = plan.amount * 100;
-            const verifyRes = await fetch("/api/verify-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                razorpay_order_id,
-                razorpay_payment_id,
-                razorpay_signature,
-                user: {
-                  email: user?.email,
-                  displayName: user?.displayName,
-                  phoneNumber: user?.phoneNumber,
-                  uid: user?.uid,
-                },
-                plan: plan.label,
-                amount, // Send amount in paise
-              }),
-            });
-            const verifyData = await verifyRes.json();
-            if (verifyData.status === "success") {
-              alert("Payment Successful! Your plan is now active.");
-            } else {
-              alert("Payment verification failed. Please contact support.");
-            }
-          } catch (err) {
-            alert("Payment verification failed. Please contact support.");
-          }
-        },
-        config: {
-          display: {
-            blocks: {
-              card: {
-                name: "Cards",
-                instruments: [{ method: "card" }],
-              },
-              netbanking: {
-                name: "Netbanking",
-                instruments: [{ method: "netbanking" }],
-              },
-              upi: {
-                name: "UPI",
-                instruments: [
-                  { method: "upi" },
-                ],
-              },
-            },
-            sequence: ["block.card", "block.netbanking", "block.upi"], // All three, inline
-            preferences: {
-              show_default_blocks: false,
-            },
-          },
-        },
-      };
-      // eslint-disable-next-line no-undef
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        alert("Payment Failed or Cancelled");
-        console.error("Razorpay Payment Failed", response);
-      });
-      rzp.open();
-    };
-    document.body.appendChild(script);
+    // For now, we'll use the existing plan structure
+    // In a real implementation, you'd fetch the plan from the database
+    window.location.href = `/payment?planId=${planKey}`;
   } catch (err) {
-    alert("Order creation failed");
+    alert("Failed to process plan selection");
   } finally {
     setLoading(prev => ({ ...prev, [planKey]: false }));
   }
@@ -168,7 +61,7 @@ const Pricing = () => {
             subscription="month"
             description="Ideal for personal use and light projects."
             buttonText={loading.basic ? "Processing..." : "Buy Now"}
-            onClick={() => handleRazorpay('Basic', setLoading, user)}
+            onClick={() => handleBuyPlan('Basic', setLoading, user)}
             features={[
               "All Free Plan Features",
               "Early Access to New Tools",
@@ -184,7 +77,7 @@ const Pricing = () => {
             subscription="month"
             description="Perfect for professionals and heavy AI users."
             buttonText={loading.premium ? "Processing..." : "Buy Now"}
-            onClick={() => handleRazorpay('Premium', setLoading, user)}
+            onClick={() => handleBuyPlan('Premium', setLoading, user)}
             features={[
               "All Basic Plan Features",
               "Unlimited Access to All Tools",
